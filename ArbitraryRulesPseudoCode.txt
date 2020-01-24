@@ -1,0 +1,38 @@
+rule 1
+if (halfway != null && current == recoverDeadline) {
+    if (stock[current].val < halfway){
+        sell();
+    }
+}
+
+if (halfway == null && stock[current].val <= stock[current-1].val * 0.85 ){
+    halfway = stock[current-1].val * 0.92.5;
+    recoverDeadline= current + 7;
+}
+
+Rule 2
+if (risingSell != null && current == sellDeadline) {
+    if (stock[current].val > risingSell){
+        sell();
+    }
+}
+
+if (risinSell == null && stock[current].val > stock[current-2].val * 1.2) {
+    risingSell = stock[current].val * 1.05;
+    sellDeadline == current + 2;
+}
+
+
+Rule 3
+if (average(stock, current) > 1.15) {
+    buy();
+}
+
+double average(stock company, int endDay) {
+    int day = endDay - 30;
+    double runningTally = 0;
+    while(day < endDay){
+        runninTally += company[day].val;
+    }
+   return runningTally/30;
+}
