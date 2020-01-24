@@ -92,7 +92,7 @@ app.get("/bobby", (req, res) => {
   });
 });
 
-app.post("/new_karen", (req, res) => {
+app.post("/karen", (req, res) => {
   const user_name = verify_token(req.headers.authorization, JWT_SECRET);
   if (!user_name || user_name !== "karen") {
     res.status(401).send("Not authorized");
@@ -114,7 +114,7 @@ app.post("/new_karen", (req, res) => {
       res.status(400).send("Missing data");
     }
     const insert_query = sqlstring.format(
-      `INSERT INTO ${acc_t}(date, type, ammount, title) VALUES(?, ?, ? ?)`,
+      `INSERT INTO ${acc_t}(date, type, amount, title) VALUES(?, ?, ?, ?)`,
       [date, i_type, amount, title]
     );
 
@@ -129,7 +129,7 @@ app.post("/new_karen", (req, res) => {
   }
 });
 
-app.post("/new_bobby", (req, res) => {
+app.post("/bobby", (req, res) => {
   const user_name = verify_token(req.headers.authorization, JWT_SECRET);
   if (!user_name || (user_name !== "karen" && user_name !== "bobby")) {
     res.status(401).send("Not authorized");
@@ -141,7 +141,7 @@ app.post("/new_bobby", (req, res) => {
     res.status(400).send("Missing data");
   }
   const insert_query = sqlstring.format(
-    `INSERT INTO bobby(date, type, ammount, title) VALUES(?, ?, ? ?)`,
+    `INSERT INTO bobby(date, type, amount, title) VALUES(?, ?, ?, ?)`,
     [date, i_type, amount, title]
   );
 
