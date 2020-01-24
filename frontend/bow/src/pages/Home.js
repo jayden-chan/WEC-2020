@@ -127,9 +127,6 @@ export function renderTable(data, account) {
     }, 0);
     return (
       <TableContainer>
-        <Typography align="left" variant="h6" id="tableTitle">
-          Total: ${total}
-        </Typography>
         <Table stickyHeader aria-label="sticky table">
           <TableHead>
             <TableRow>
@@ -139,7 +136,19 @@ export function renderTable(data, account) {
               <TableCell align="right">Date</TableCell>
             </TableRow>
           </TableHead>
-          <TableBody>{items}</TableBody>
+          <TableBody>
+            {items}
+            <TableRow key="sum">
+              <TableCell component="th" scope="row">
+                <b>Sum</b>
+              </TableCell>
+              <TableCell align="right">
+                <b>{total}</b>
+              </TableCell>
+              <TableCell align="right"></TableCell>
+              <TableCell align="right"></TableCell>
+            </TableRow>
+          </TableBody>
         </Table>
       </TableContainer>
     );
@@ -188,10 +197,6 @@ export default class Home extends Component {
       } else {
         res.text().then(text => alert(text));
       }
-    });
-
-    this.setState({
-      data: data
     });
   };
 
