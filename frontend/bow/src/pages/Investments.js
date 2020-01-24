@@ -58,7 +58,7 @@ export default class Investments extends Component {
           }
         ]
       },
-      date: moment()
+      date: moment("2019-06-28", "YYYY-MM-DD")
     };
   }
 
@@ -91,6 +91,30 @@ export default class Investments extends Component {
   dayAdd() {
     this.setState(state => ({
       date: state.date.add(1, "days")
+    }));
+    const link = "http://localhost:3000/update_stocks";
+
+    fetch(link, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: localStorage.getItem("bow-login-token")
+      },
+      body: JSON.stringify({
+        date: this.state.date.format("YYYY-MM-DD")
+      })
+    }).then(res => {
+      if (res.status === 200) {
+        res.json().then(json => this.setState({ data: json }));
+      } else {
+        res.text().then(text => alert(text));
+      }
+    });
+  }
+
+  daySub() {
+    this.setState(state => ({
+      date: state.date.subtract(1, "days")
     }));
     const link = "http://localhost:3000/update_stocks";
 
@@ -155,9 +179,7 @@ export default class Investments extends Component {
           aria-label="outlined primary button group"
         >
           <Button onClick={() => this.dayAdd()}>+</Button>
-          <Button disabled onClick={() => this.daySubtract()}>
-            -
-          </Button>
+          <Button onClick={() => this.daySub()}>-</Button>
         </ButtonGroup>
         <br></br>
         <br></br>

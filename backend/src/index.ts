@@ -413,12 +413,14 @@ app.post("/update_stocks", (req, res) => {
                           };
                           if (v === 0) return;
                           const i_type = v > 0 ? "Withdrawal" : "Deposit";
-                          const price = v * data[k][29].open;
+                          const price = Math.abs(v) * data[k][29].open;
                           const name = k.charAt(0).toUpperCase() + k.slice(1);
                           const title =
                             i_type === "Withdrawal"
                               ? `StockBot: Purchase ${v} stocks from ${name}`
-                              : `StockBot: Sell ${-v} stocks from ${name}`;
+                              : `StockBot: Sell ${Math.abs(
+                                  v
+                                )} stocks from ${name}`;
                           query += sqlstring.format("(?, ?, ?, ?, ?)\n,", [
                             date,
                             i_type,
