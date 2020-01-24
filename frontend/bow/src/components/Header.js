@@ -18,7 +18,7 @@ export default function Header() {
 
   return (
     <AppBar
-      style={{ backgroundColor: "green", padding: "0 4em", width: "100%" }}
+      style={{ backgroundColor: "green", padding: "0 3.5em", width: "100%" }}
       position="fixed"
     >
       <Toolbar>
@@ -31,6 +31,9 @@ export default function Header() {
           <nav>
             <Link style={{ textDecoration: "none" }} to="/">
               <NavLink>Home</NavLink>
+            </Link>
+            <Link style={{ textDecoration: "none" }} to="/investments">
+              <NavLink>Investments</NavLink>
             </Link>
             <Link style={{ textDecoration: "none" }} to="login">
               <NavLink>Login</NavLink>

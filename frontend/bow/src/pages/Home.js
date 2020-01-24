@@ -12,9 +12,12 @@ import MenuItem from "@material-ui/core/MenuItem";
 import InputLabel from "@material-ui/core/InputLabel";
 import FormControl from "@material-ui/core/FormControl";
 import Button from "@material-ui/core/Button";
+import ButtonGroup from "@material-ui/core/ButtonGroup";
 import { withStyles } from "@material-ui/core/styles";
 import Typography from "@material-ui/core/Typography";
 import CircularProgress from "@material-ui/core/CircularProgress";
+import Grid from "@material-ui/core/Grid";
+import moment from "moment";
 
 const savingsData = [
   {
@@ -70,7 +73,7 @@ const chequingData = [
   }
 ];
 
-const data = {
+export const data = {
   chequing: chequingData,
   savings: savingsData,
   investments: [],
@@ -90,6 +93,52 @@ const data = {
   ]
 };
 
+export function renderTable(data, account) {
+  if (!data || !data[account] || Object.entries(data).length === 0) {
+    console.log("data is loading");
+    return <CircularProgress color="green" />;
+  }
+  if (data[account].length === 0) {
+    return <div>You have no transactions</div>;
+  } else {
+    console.log("length", data[account].length);
+    const items = data[account].map((row, i) => {
+      return (
+        <TableRow key={i}>
+          <TableCell component="th" scope="row">
+            {row.type}
+          </TableCell>
+          <TableCell align="right">{row.amount}</TableCell>
+          <TableCell align="right">{row.title}</TableCell>
+          <TableCell align="right">{row.date}</TableCell>
+        </TableRow>
+      );
+    });
+
+    return (
+      <TableContainer>
+        <Typography align="left" variant="h6" id="tableTitle">
+          Total:{" "}
+          {data[account].reduce(function(total, el) {
+            return total + el.amount;
+          }, 0)}
+        </Typography>
+        <Table stickyHeader aria-label="sticky table">
+          <TableHead>
+            <TableRow>
+              <TableCell>Type</TableCell>
+              <TableCell align="right">Amount ($)</TableCell>
+              <TableCell align="right">Title</TableCell>
+              <TableCell align="right">Date</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>{items}</TableBody>
+        </Table>
+      </TableContainer>
+    );
+  }
+}
+
 const StyledFormControl = withStyles({
   root: {
     width: "200px",
@@ -107,7 +156,8 @@ export default class Home extends Component {
       transactionAmount: null,
       transactionAccount: "",
       transactionTitle: "",
-      transferAmount: null
+      transferAmount: null,
+      date: moment()
     };
     this.handleTransaction = this.handleTransaction.bind(this);
     this.handleTransfer = this.handleTransfer.bind(this);
@@ -194,50 +244,6 @@ export default class Home extends Component {
     });
   }
 
-  renderTable(account) {
-    if (
-      !this.state.data ||
-      !this.state.data[account] ||
-      Object.entries(this.state.data).length === 0
-    ) {
-      console.log("data is loading");
-      return <CircularProgress color="green" />;
-    }
-    if (this.state.data[account].length === 0) {
-      return <div>You have no transactions</div>;
-    } else {
-      console.log("length", this.state.data[account].length);
-      const items = this.state.data[account].map((row, i) => {
-        return (
-          <TableRow key={i}>
-            <TableCell component="th" scope="row">
-              {row.type}
-            </TableCell>
-            <TableCell align="right">{row.amount}</TableCell>
-            <TableCell align="right">{row.title}</TableCell>
-            <TableCell align="right">{row.date}</TableCell>
-          </TableRow>
-        );
-      });
-
-      return (
-        <TableContainer>
-          <Table stickyHeader aria-label="sticky table">
-            <TableHead>
-              <TableRow>
-                <TableCell>Type</TableCell>
-                <TableCell align="right">Amount ($)</TableCell>
-                <TableCell align="right">Title</TableCell>
-                <TableCell align="right">Date</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>{items}</TableBody>
-          </Table>
-        </TableContainer>
-      );
-    }
-  }
-
   transactionForm(isKaren) {
     return (
       <form noValidate autoComplete="off" style={{ textAlign: "left" }}>
@@ -299,7 +305,7 @@ export default class Home extends Component {
           style={{
             backgroundColor: "green",
             color: "white",
-            marginTop: "1em"
+            marginTop: "2em"
           }}
         >
           Submit
@@ -328,7 +334,7 @@ export default class Home extends Component {
           style={{
             backgroundColor: "green",
             color: "white",
-            marginTop: "1em"
+            marginTop: "2em"
           }}
         >
           Submit
@@ -337,20 +343,49 @@ export default class Home extends Component {
     );
   }
 
+  dayAdd() {
+    this.setState(state => ({
+      date: state.date.add(1, "days")
+    }));
+  }
+  daySubtract() {
+    this.setState(state => ({
+      date: state.date.subtract(1, "days")
+    }));
+  }
+
   render() {
     const isKaren = "savings" in this.state.data;
+    console.log("isKaren", isKaren);
+    console.log("date", this.state.date);
     console.log("data", this.state.data);
+
     return (
       <Layout>
         <Typography variant="h4" align="left">
           Transactions
         </Typography>
+        <Typography variant="h5" align="left">
+          Date: {this.state.date.format("dddd, MMMM Do YYYY")}
+        </Typography>
+        <ButtonGroup
+          color="primary"
+          style={{ float: "left" }}
+          aria-label="outlined primary button group"
+        >
+          <Button onClick={() => this.dayAdd()}>+</Button>
+          <Button disabled onClick={() => this.daySubtract()}>
+            -
+          </Button>
+        </ButtonGroup>
+        <br></br>
+        <br></br>
         {isKaren && (
           <>
             <Typography variant="h5" align="left">
               Savings
             </Typography>
-            {this.renderTable("savings")}
+            {renderTable(this.state.data, "savings")}
           </>
         )}
         {isKaren && (
@@ -358,33 +393,30 @@ export default class Home extends Component {
             <Typography variant="h5" align="left">
               Chequing
             </Typography>
-            {this.renderTable("chequing")}
+            {renderTable(this.state.data, "chequing")}
           </>
         )}
-        {isKaren && (
-          <>
+        <Typography variant="h5" align="left"></Typography>
+        {renderTable(this.state.data, "bobby")}
+
+        <Grid container spacing={3} style={{ marginTop: "1.5em" }}>
+          <Grid item xs={6}>
             <Typography variant="h5" align="left">
-              Investments
+              Add Transaction
             </Typography>
-            {this.renderTable("investments")}
-          </>
-        )}
-        <Typography variant="h5" align="left">
-          Bobby's Account
-        </Typography>
-        {this.renderTable("bobby")}
-        <Typography variant="h5" align="left">
-          Add Transaction
-        </Typography>
-        {this.transactionForm()}
-        {isKaren && (
-          <>
-            <Typography variant="h5" align="left">
-              Transfer to Bobby
-            </Typography>
-            {this.transferForm()}
-          </>
-        )}
+            {this.transactionForm(isKaren)}
+          </Grid>
+          <Grid item xs={6}>
+            {isKaren && (
+              <>
+                <Typography variant="h5" align="left">
+                  Transfer to Bobby
+                </Typography>
+                {this.transferForm()}
+              </>
+            )}
+          </Grid>
+        </Grid>
       </Layout>
     );
   }
