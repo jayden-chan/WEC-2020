@@ -143,7 +143,7 @@ export function renderTable(data, account) {
                 <b>Sum</b>
               </TableCell>
               <TableCell align="right">
-                <b>{total}</b>
+                <b>{Math.round(total, 5)}</b>
               </TableCell>
               <TableCell align="right"></TableCell>
               <TableCell align="right"></TableCell>
@@ -232,8 +232,6 @@ export default class Home extends Component {
         res.text().then(text => alert(text));
       }
     });
-
-    window.location.reload();
   }
 
   handleTransfer() {
@@ -257,8 +255,6 @@ export default class Home extends Component {
         res.text().then(text => alert(text));
       }
     });
-
-    window.location.reload();
   }
 
   transactionForm(isKaren) {

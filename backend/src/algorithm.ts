@@ -12,8 +12,8 @@ type MarketStocks = {
   macys: MarketDay[];
 };
 
-const LAST_SEVEN_DAYS = 23;
-const LAST_FIVE_DAYS = 25;
+const LAST_TWENTY_ONE_DAYS = 9;
+const LAST_TWENTY_EIGHT_DAYS = 2;
 
 type MarketDay = {
   close: number;
@@ -31,26 +31,26 @@ type ShouldBuyStock = {
 
 function shouldSell(lastMonth: MarketDay[]): boolean {
   if (
-    fiveDayrule(lastMonth.slice(LAST_FIVE_DAYS)) ||
-    sevenDayRule(lastMonth.slice(LAST_SEVEN_DAYS))
+    fourWeekRule(lastMonth.slice(LAST_TWENTY_EIGHT_DAYS)) ||
+    threeWeekRule(lastMonth.slice(LAST_TWENTY_ONE_DAYS))
   ) {
     return true;
   }
   return false;
 }
 
-function fiveDayrule(days: MarketDay[]): boolean {
-  if (days[2].open > days[0].open * 1.2) {
-    if (days[4].open < days[2].open * 1.05) {
+function fourWeekRule(days: MarketDay[]): boolean {//fourWeekRule
+  if (days[20].open > days[0].open * 1.2) {
+    if (days[27].open < days[20].open * 1.05) {
       return true;
     }
   }
   return false;
 }
 
-function sevenDayRule(days: MarketDay[]): boolean {
-  if (days[1].close <= 0.85 * days[0].close) {
-    if (days[6].close <= days[0].close * 0.925) {
+function threeWeekRule(days: MarketDay[]): boolean {//threeWeekRule
+  if (days[13].close <= 0.93 * days[0].close) {
+    if (days[20].close <= days[0].close * 0.97) {
       return true;
     }
   }
@@ -85,6 +85,7 @@ export function processStocks(
     if (buy && !sell) {
       shouldBuyStock[company] = true;
     } else if (sell && !buy) {
+      console.log("selling");
       shouldBuyStock[company] = false;
     }
   });

@@ -177,12 +177,14 @@ app.post("/bobby", (req, res) => {
       let accepted = true;
       if (bal < amount) {
         accepted = false;
+        console.log("too low");
         res.status(400).send("Too low balance");
       }
 
       bobby_today(date, am => {
         if (accepted && am + amount > 100) {
           accepted = false;
+          console.log("locked");
           res.status(400).send("Your account is locked sorry");
         }
 
@@ -199,6 +201,7 @@ app.post("/bobby", (req, res) => {
             }
           } else {
             if (accepted) {
+              console.log("sent");
               res.status(201).send("Data added");
             }
           }
@@ -216,6 +219,7 @@ app.post("/bobby", (req, res) => {
         console.log(err);
         res.status(500).send("Error occurred with db insert");
       } else {
+        console.log("added");
         res.status(201).send("Data added");
       }
     });
@@ -409,9 +413,14 @@ app.post("/update_stocks", (req, res) => {
                           };
                           if (v === 0) return;
                           const i_type = v > 0 ? "Withdrawal" : "Deposit";
-                          const price = v * data[k][29].open;
+                          const price = Math.abs(v) * data[k][29].open;
                           const name = k.charAt(0).toUpperCase() + k.slice(1);
-                          const title = `StockBot: Purchase ${v} stocks from ${name}`;
+                          const title =
+                            i_type === "Withdrawal"
+                              ? `StockBot: Purchase ${v} stocks from ${name}`
+                              : `StockBot: Sell ${Math.abs(
+                                  v
+                                )} stocks from ${name}`;
                           query += sqlstring.format("(?, ?, ?, ?, ?)\n,", [
                             date,
                             i_type,
@@ -562,7 +571,7 @@ if (process.argv[2] === "--import") {
 
   let query = `INSERT INTO ${process.argv[4]}(date, type, amount, title, accepted) VALUES`;
   records.slice(1).forEach(s => {
-    query += sqlstring.format("(?, ?, ?, ?),\n", [
+    query += sqlstring.format("(?, ?, ?, ?, ?),\n", [
       moment(s[0]).format("YYYY-MM-DD"),
       s[1] === "Withdrawl" ? "Withdrawal" : s[1],
       s[2],
@@ -572,6 +581,7 @@ if (process.argv[2] === "--import") {
   });
 
   query = query.slice(0, -2) + ";";
+  console.log(query);
 
   client.query(query, (err, res) => {
     if (err) {
