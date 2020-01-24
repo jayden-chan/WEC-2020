@@ -13,6 +13,7 @@ import InputLabel from "@material-ui/core/InputLabel";
 import FormControl from "@material-ui/core/FormControl";
 import Button from "@material-ui/core/Button";
 import { withStyles } from "@material-ui/core/styles";
+import Typography from "@material-ui/core/Typography";
 
 const savingsData = [
   {
@@ -68,10 +69,29 @@ const chequingData = [
   }
 ];
 
+const data = {
+  chequing: chequingData,
+  savings: savingsData,
+  bobby: [
+    {
+      date: "2020-01-04T06:00:00.000Z",
+      type: "Deposit",
+      amount: 60,
+      title: "Misc"
+    },
+    {
+      date: "2020-01-04T06:00:00.000Z",
+      type: "Withdrawal",
+      amount: 50,
+      title: "Misc"
+    }
+  ]
+};
+
 const StyledFormControl = withStyles({
   root: {
     width: "200px",
-    margin: "0 10px"
+    margin: "10px 0"
   }
 })(FormControl);
 
@@ -79,11 +99,10 @@ export default class Home extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      savings: [],
-      chequing: [],
+      data: data,
       transactionDate: "",
       transactionType: "",
-      transactionAmount: 0,
+      transactionAmount: null,
       transactionAccount: "",
       transactionTitle: ""
     };
@@ -91,10 +110,10 @@ export default class Home extends Component {
   }
 
   componentDidMount = async () => {
-    // if (!localStorage.getItem("guugle-login-token")) {
-    //   this.props.history.push("/login");
-    //   return;
-    // }
+    if (!localStorage.getItem("bow-login-token")) {
+      this.props.history.push("/login");
+      return;
+    }
     // const link = "http://localhost:3001/list";
     // fetch(link, {
     //   method: "GET",
@@ -108,10 +127,9 @@ export default class Home extends Component {
     //     res.text().then(text => alert(text));
     //   }
     // });
-    this.setState({
-      savings: savingsData,
-      chequing: chequingData
-    });
+    // this.setState({
+    //   data: data
+    // });
   };
 
   handleSubmit() {
@@ -125,13 +143,14 @@ export default class Home extends Component {
   }
 
   renderTable(account) {
-    if (this.state[account].length === 0) {
+    console.log(this.state.data);
+    if (this.state.data[account].length === 0) {
       return <div>You have no transactions</div>;
     } else {
-      console.log("length", this.state[account].length);
-      const items = this.state[account].map(row => {
+      console.log("length", this.state.data[account].length);
+      const items = this.state.data[account].map((row, i) => {
         return (
-          <TableRow key={row.type}>
+          <TableRow key={i}>
             <TableCell component="th" scope="row">
               {row.type}
             </TableCell>
@@ -158,12 +177,11 @@ export default class Home extends Component {
         </TableContainer>
       );
     }
-    return <p>error</p>;
   }
 
-  transactionForm() {
+  transactionForm(isKaren) {
     return (
-      <form noValidate autoComplete="off">
+      <form noValidate autoComplete="off" style={{ textAlign: "left" }}>
         <TextField
           id="transaction-title"
           label="Title"
@@ -173,7 +191,7 @@ export default class Home extends Component {
             this.setState({ transactionTitle: e.target.value });
           }}
         />
-
+        <br></br>
         <StyledFormControl size="medium">
           <InputLabel>Type</InputLabel>
           <Select
@@ -188,6 +206,7 @@ export default class Home extends Component {
             <MenuItem value="Deposit">Deposit</MenuItem>
           </Select>
         </StyledFormControl>
+        <br></br>
         <StyledFormControl size="medium">
           <InputLabel>Account</InputLabel>
           <Select
@@ -198,10 +217,12 @@ export default class Home extends Component {
               this.setState({ transactionAccount: e.target.value });
             }}
           >
-            <MenuItem value="s">Savings</MenuItem>
-            <MenuItem value="c">Chequing</MenuItem>
+            {isKaren && <MenuItem value="s">Savings</MenuItem>}
+            {isKaren && <MenuItem value="c">Chequing</MenuItem>}
+            <MenuItem value="b">Bobby</MenuItem>
           </Select>
         </StyledFormControl>
+        <br></br>
         <TextField
           id="transaction-amount"
           label="Amount"
@@ -212,7 +233,16 @@ export default class Home extends Component {
           }}
           inputProps={{ min: "0" }}
         />
-        <Button onClick={this.handleSubmit} variant="contained" color="primary">
+        <br></br>
+        <Button
+          onClick={this.handleSubmit}
+          variant="contained"
+          style={{
+            backgroundColor: "green",
+            color: "white",
+            marginTop: "1em"
+          }}
+        >
           Submit
         </Button>
       </form>
@@ -220,15 +250,40 @@ export default class Home extends Component {
   }
 
   render() {
+    console.log("data", this.state.data);
     return (
       <Layout>
-        <h3>Transactions</h3>
-        <h4>Savings</h4>
-        {this.renderTable("savings")}
-        <h4>Chequing</h4>
-        {this.renderTable("chequing")}
-        <h4>Add Transaction</h4>
-        {this.transactionForm()}
+        <Typography variant="h4" align="left">
+          Transactions
+        </Typography>
+        {"savings" in this.state.data && (
+          <>
+            <Typography variant="h5" align="left">
+              Savings
+            </Typography>
+            {this.renderTable("savings")}
+          </>
+        )}
+        {"chequing" in this.state.data && (
+          <>
+            <Typography variant="h5" align="left">
+              Chequing
+            </Typography>
+            {this.renderTable("chequing")}
+          </>
+        )}
+        {"bobby" in this.state.data && (
+          <>
+            <Typography variant="h5" align="left">
+              Bobby
+            </Typography>
+            {this.renderTable("bobby")}
+          </>
+        )}
+        <Typography variant="h5" align="left">
+          Add Transaction
+        </Typography>
+        {this.transactionForm("savings" in this.state.data)}
       </Layout>
     );
   }

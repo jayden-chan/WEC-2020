@@ -5,6 +5,8 @@ import TextField from "@material-ui/core/TextField";
 import Typography from "@material-ui/core/Typography";
 import Container from "@material-ui/core/Container";
 
+import { ToastContainer, toast } from "react-toastify";
+
 export default class Login extends Component {
   constructor(props) {
     super(props);
@@ -14,7 +16,6 @@ export default class Login extends Component {
       password: ""
     };
 
-    this.handleChange = this.handleChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
   }
 
@@ -30,6 +31,40 @@ export default class Login extends Component {
 
   handleSubmit(event) {
     console.log(this.state);
+    fetch("http://localhost:3001/login", {
+      method: "post",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        username: this.state.username,
+        password: this.state.password
+      })
+    })
+      .then(res => {
+        if (res.status === 200) {
+          return res.json();
+        } else {
+          res.text().then(text => toast.error(text));
+          return null;
+        }
+      })
+      .then(json => {
+        console.log("json:", json);
+        if (json !== null) {
+          localStorage.setItem("bow-login-token", json.token);
+          console.log("token stored");
+          this.props.history.push("/");
+        }
+      })
+      .catch(err => {
+        console.log(err);
+      });
+
+    localStorage.setItem("bow-login-token", JSON.stringify({ hi: "no idea" }));
+    console.log("token stored");
+    this.props.history.push("/");
+    event.preventDefault();
   }
 
   render() {
@@ -53,6 +88,7 @@ export default class Login extends Component {
                 name="username"
                 autoComplete="text"
                 autoFocus
+                style={{ borderColor: "green", outline: "green" }}
               />
               <TextField
                 variant="outlined"
@@ -71,7 +107,7 @@ export default class Login extends Component {
                 type="submit"
                 fullWidth
                 variant="contained"
-                color="primary"
+                style={{ backgroundColor: "green", color: "white" }}
               >
                 Submit
               </Button>

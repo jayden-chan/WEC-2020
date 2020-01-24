@@ -17,14 +17,17 @@ export default function Header() {
   `;
 
   return (
-    <AppBar position="fixed">
+    <AppBar
+      style={{ backgroundColor: "green", padding: "0 4em", width: "100%" }}
+      position="fixed"
+    >
       <Toolbar>
-        <Grid item xs={6}>
+        <Grid style={{ marginRight: "1em" }}>
           <Link style={{ textDecoration: "none" }} to="/">
             <Title>Bank Of WEC</Title>
           </Link>
         </Grid>
-        <Grid item xs={6}>
+        <Grid style={{ float: "right" }}>
           <nav>
             <Link style={{ textDecoration: "none" }} to="/">
               <NavLink>Home</NavLink>
