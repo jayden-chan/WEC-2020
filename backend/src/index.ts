@@ -353,6 +353,8 @@ app.post("/update_stocks", (req, res) => {
       [date]
     );
 
+  // node-postgres does not support sync requests so we need to
+  // nest them like this, sorry
   client.query(query("tesla"), (e1, r1) => {
     if (e1) {
       console.log(e1);
@@ -388,7 +390,140 @@ app.post("/update_stocks", (req, res) => {
 
                         const updates = processStocks(data, r5.rows[0], bal);
                         console.log(updates);
-                        res.status(200).send(JSON.stringify(updates));
+                        let query = `INSERT INTO investments(date, type, amount, title, accepted) VALUES`;
+                        const q2 = `UPDATE stocks SET costco = ?, macys = ?, loblaws = ?, tesla = ?`;
+                        console.log(r5.rows);
+
+                        const stocks = {};
+                        let did_insert = false;
+                        Object.entries(updates).forEach(([k, v]) => {
+                          stocks[k] = {
+                            count: v + r5.rows[0][k],
+                            price: data[k][29].open
+                          };
+                          if (v === 0) return;
+                          const i_type = v > 0 ? "Withdrawal" : "Deposit";
+                          const price = v * data[k][29].open;
+                          const name = k.charAt(0).toUpperCase() + k.slice(1);
+                          const title = `StockBot: Purchase ${v} stocks from ${name}`;
+                          query += sqlstring.format("(?, ?, ?, ?, ?)\n,", [
+                            date,
+                            i_type,
+                            price,
+                            title,
+                            true
+                          ]);
+                          did_insert = true;
+                        });
+
+                        if (did_insert) {
+                          client.query(query.slice(0, -2) + ";", (e6, r6) => {
+                            if (e6) {
+                              console.log(e6);
+                              res.status(500).send("err in db");
+                            } else {
+                              client.query(
+                                "SELECT * FROM investments WHERE accepted = true",
+                                (e7, r7) => {
+                                  if (e7) {
+                                    console.log(e7);
+                                    res.status(500).send("err in db");
+                                  } else {
+                                    client.query(
+                                      sqlstring.format(q2, [
+                                        stocks["costco"].count,
+                                        stocks["macys"].count,
+                                        stocks["loblaws"].count,
+                                        stocks["tesla"].count
+                                      ]),
+                                      (e8, r8) => {
+                                        if (e8) {
+                                          console.log(e8);
+                                          res.status(500).send("err in db");
+                                        } else {
+                                          res.status(200).send(
+                                            JSON.stringify({
+                                              stocks: Object.entries(
+                                                stocks
+                                              ).map(([k, v]) => {
+                                                return {
+                                                  name: k,
+                                                  count: v["count"],
+                                                  price: v["price"]
+                                                };
+                                              }),
+                                              investments: r7.rows
+                                            })
+                                          );
+                                        }
+                                      }
+                                    );
+                                  }
+                                }
+                              );
+                            }
+                          });
+                        } else {
+                          client.query(
+                            "SELECT * FROM investments WHERE accepted = true",
+                            (e7, r7) => {
+                              if (e7) {
+                                console.log(e7);
+                                res.status(500).send("err in db");
+                              } else {
+                                if (!did_insert) {
+                                  res.status(200).send(
+                                    JSON.stringify({
+                                      stocks,
+                                      investments: r7.rows
+                                    })
+                                  );
+                                } else {
+                                  client.query(
+                                    query.slice(0, -2) + ";",
+                                    (e6, r6) => {
+                                      if (e6) {
+                                        console.log(e6);
+
+                                        res.status(500).send("err in db");
+                                      } else {
+                                        client.query(
+                                          sqlstring.format(q2, [
+                                            stocks["costco"].count,
+                                            stocks["macys"].count,
+                                            stocks["loblaws"].count,
+                                            stocks["tesla"].count
+                                          ]),
+                                          (e8, r8) => {
+                                            if (e8) {
+                                              console.log(e8);
+                                              res.status(500).send("err in db");
+                                            } else {
+                                              res.status(200).send(
+                                                JSON.stringify({
+                                                  stocks: Object.entries(
+                                                    stocks
+                                                  ).map(([k, v]) => {
+                                                    return {
+                                                      name: k,
+                                                      count: v["count"],
+                                                      price: v["price"]
+                                                    };
+                                                  }),
+                                                  investments: r7.rows
+                                                })
+                                              );
+                                            }
+                                          }
+                                        );
+                                      }
+                                    }
+                                  );
+                                }
+                              }
+                            }
+                          );
+                        }
                       });
                     }
                   });
