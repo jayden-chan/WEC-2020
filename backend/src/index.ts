@@ -14,11 +14,11 @@ const JWT_SECRET = process.env.JWT_SECRET || "Hello there testing";
 
 const { Pool } = require("pg");
 const client = new Pool({
-  connectionString: "postgres://jayden@localhost/users",
+  connectionString: "postgres://jayden@localhost/wec-2020",
   ssl: false
 });
 
-const PORT = 3001;
+const PORT = 3000;
 
 const app = express();
 app.use(
@@ -34,14 +34,6 @@ app.use(cors());
 app.get("/hello", (req, res) => {
   res.status(200).send("Hello there testing");
 });
-
-app.get("/list", (req, res) => {});
-
-app.post("/upload", (req, res) => {});
-
-app.delete("/delete/:filename", (req, res) => {});
-
-app.get("/file/:filename", (req, res) => {});
 
 app.post("/login", (req, res) => {
   const query = sqlstring.format(
