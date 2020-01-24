@@ -38,6 +38,15 @@ export default function Header() {
             <Link style={{ textDecoration: "none" }} to="login">
               <NavLink>Login</NavLink>
             </Link>
+            <Link
+              onClick={() => {
+                localStorage.removeItem("bow-login-token");
+              }}
+              style={{ textDecoration: "none" }}
+              to="login"
+            >
+              <NavLink>Logout</NavLink>
+            </Link>
           </nav>
         </Grid>
       </Toolbar>

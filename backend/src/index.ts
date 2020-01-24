@@ -12,6 +12,8 @@ import * as jwt from "jsonwebtoken";
 import * as sqlstring from "sqlstring";
 import * as parse from "csv-parse/lib/sync";
 
+import { processStocks } from "./algorithm";
+
 const JWT_SECRET = process.env.JWT_SECRET || "Hello there testing";
 
 const { Pool } = require("pg");
@@ -109,8 +111,8 @@ app.post("/karen", (req, res) => {
   if (!acc_t) {
     res.status(400).send("Invalid account type");
   } else {
-    const { i_type, amount, title } = req.body;
-    if (undef(i_type) || undef(amount) || undef(title)) {
+    const { date, i_type, amount, title } = req.body;
+    if (undef(date) || undef(i_type) || undef(amount) || undef(title)) {
       res.status(400).send("Missing data");
     }
 
@@ -124,7 +126,7 @@ app.post("/karen", (req, res) => {
 
         const insert_query = sqlstring.format(
           `INSERT INTO ${acc_t}(date, type, amount, title, accepted) VALUES(?, ?, ?, ?, ?)`,
-          [moment().format(), i_type, amount, title, accepted]
+          [date, i_type, amount, title, accepted]
         );
 
         client.query(insert_query, (err, response) => {
@@ -143,7 +145,7 @@ app.post("/karen", (req, res) => {
     } else {
       const insert_query = sqlstring.format(
         `INSERT INTO ${acc_t}(date, type, amount, title, accepted) VALUES(?, ?, ?, ?, ?)`,
-        [moment().format(), i_type, amount, title, true]
+        [date, i_type, amount, title, true]
       );
 
       client.query(insert_query, (err, response) => {
@@ -165,8 +167,8 @@ app.post("/bobby", (req, res) => {
     return;
   }
 
-  const { i_type, amount, title } = req.body;
-  if (undef(i_type) || undef(amount) || undef(title)) {
+  const { date, i_type, amount, title } = req.body;
+  if (undef(date) || undef(i_type) || undef(amount) || undef(title)) {
     res.status(400).send("Missing data");
   }
 
@@ -178,7 +180,7 @@ app.post("/bobby", (req, res) => {
         res.status(400).send("Too low balance");
       }
 
-      bobby_today(moment().format("YYYY-MM-DD"), am => {
+      bobby_today(date, am => {
         if (accepted && am + amount > 100) {
           accepted = false;
           res.status(400).send("Your account is locked sorry");
@@ -186,7 +188,7 @@ app.post("/bobby", (req, res) => {
 
         const insert_query = sqlstring.format(
           `INSERT INTO bobby(date, type, amount, title, accepted) VALUES(?, ?, ?, ?, ?)`,
-          [moment().format(), i_type, amount, title, accepted]
+          [date, i_type, amount, title, accepted]
         );
 
         client.query(insert_query, (err, response) => {
@@ -206,7 +208,7 @@ app.post("/bobby", (req, res) => {
   } else {
     const insert_query = sqlstring.format(
       `INSERT INTO bobby(date, type, amount, title, accepted) VALUES(?, ?, ?, ?, ?)`,
-      [moment().format(), i_type, amount, title, true]
+      [date, i_type, amount, title, true]
     );
 
     client.query(insert_query, (err, response) => {
@@ -221,7 +223,17 @@ app.post("/bobby", (req, res) => {
 });
 
 app.post("/transfer", (req, res) => {
+  const user_name = verify_token(req.headers.authorization, JWT_SECRET);
+  if (!user_name) {
+    res.status(401).send("Not authorized");
+    return;
+  }
   const { amount } = req.body;
+
+  if (undef(amount) || amount === "") {
+    res.status(400).send("Missing amount");
+    return;
+  }
 
   karen_bal(false, bal => {
     if (bal < amount) {
@@ -229,13 +241,13 @@ app.post("/transfer", (req, res) => {
     } else {
       const time = moment().format("YYYY-MM-DD");
       const insert_query = sqlstring.format(
-        `INSERT INTO karen_check(date, type, amount, title) VALUES(?, ?, ?, ?)`,
-        [time, "Withdrawal", amount, "Transfer to Bobby"]
+        `INSERT INTO karen_check(date, type, amount, title, accepted) VALUES(?, ?, ?, ?, ?)`,
+        [time, "Withdrawal", amount, "Transfer to Bobby", true]
       );
 
       const bobby_query = sqlstring.format(
-        `INSERT INTO bobby(date, type, amount, title) VALUES(?, ?, ?, ?)`,
-        [time, "Deposit", amount, "Transfer from Karen"]
+        `INSERT INTO bobby(date, type, amount, title, accepted) VALUES(?, ?, ?, ?, ?)`,
+        [time, "Deposit", amount, "Transfer from Karen", true]
       );
 
       client.query(insert_query, (e1, r1) => {
@@ -325,6 +337,220 @@ app.post("/signup", (req, res) => {
   });
 });
 
+app.post("/update_stocks", (req, res) => {
+  const user_name = verify_token(req.headers.authorization, JWT_SECRET);
+  if (!user_name || user_name !== "karen") {
+    res.status(401).send("Not authorized");
+    return;
+  }
+
+  const { date } = req.body;
+  if (!date) {
+    console.log(req.body);
+    res.status(401).send("No date");
+    return;
+  }
+
+  const our_stocks = `SELECT * FROM stocks`;
+
+  const query = s =>
+    sqlstring.format(
+      `SELECT * FROM ${s} WHERE date < ? ORDER BY date DESC LIMIT 30`,
+      [date]
+    );
+
+  // node-postgres does not support sync requests so we need to
+  // nest them like this, sorry
+  client.query(query("tesla"), (e1, r1) => {
+    if (e1) {
+      console.log(e1);
+      res.status(500).send("err in db");
+    } else {
+      client.query(query("loblaws"), (e2, r2) => {
+        if (e2) {
+          console.log(e2);
+          res.status(500).send("err in db");
+        } else {
+          client.query(query("macys"), (e3, r3) => {
+            if (e3) {
+              console.log(e3);
+              res.status(500).send("err in db");
+            } else {
+              client.query(query("costco"), (e4, r4) => {
+                if (e4) {
+                  console.log(e4);
+                  res.status(500).send("err in db");
+                } else {
+                  client.query(our_stocks, (e5, r5) => {
+                    if (e5) {
+                      console.log(e5);
+                      res.status(500).send("err in db");
+                    } else {
+                      karen_inv_bal(bal => {
+                        const data = {
+                          tesla: r1.rows,
+                          loblaws: r2.rows,
+                          macys: r3.rows,
+                          costco: r4.rows
+                        };
+
+                        const updates = processStocks(data, r5.rows[0], bal);
+                        console.log(updates);
+                        let query = `INSERT INTO investments(date, type, amount, title, accepted) VALUES`;
+                        const q2 = `UPDATE stocks SET costco = ?, macys = ?, loblaws = ?, tesla = ?`;
+                        console.log(r5.rows);
+
+                        const stocks = {};
+                        let did_insert = false;
+                        Object.entries(updates).forEach(([k, v]) => {
+                          stocks[k] = {
+                            count: v + r5.rows[0][k],
+                            price: data[k][29].open
+                          };
+                          if (v === 0) return;
+                          const i_type = v > 0 ? "Withdrawal" : "Deposit";
+                          const price = v * data[k][29].open;
+                          const name = k.charAt(0).toUpperCase() + k.slice(1);
+                          const title = `StockBot: Purchase ${v} stocks from ${name}`;
+                          query += sqlstring.format("(?, ?, ?, ?, ?)\n,", [
+                            date,
+                            i_type,
+                            price,
+                            title,
+                            true
+                          ]);
+                          did_insert = true;
+                        });
+
+                        if (did_insert) {
+                          client.query(query.slice(0, -2) + ";", (e6, r6) => {
+                            if (e6) {
+                              console.log(e6);
+                              res.status(500).send("err in db");
+                            } else {
+                              client.query(
+                                "SELECT * FROM investments WHERE accepted = true",
+                                (e7, r7) => {
+                                  if (e7) {
+                                    console.log(e7);
+                                    res.status(500).send("err in db");
+                                  } else {
+                                    client.query(
+                                      sqlstring.format(q2, [
+                                        stocks["costco"].count,
+                                        stocks["macys"].count,
+                                        stocks["loblaws"].count,
+                                        stocks["tesla"].count
+                                      ]),
+                                      (e8, r8) => {
+                                        if (e8) {
+                                          console.log(e8);
+                                          res.status(500).send("err in db");
+                                        } else {
+                                          res.status(200).send(
+                                            JSON.stringify({
+                                              stocks: Object.entries(
+                                                stocks
+                                              ).map(([k, v]) => {
+                                                return {
+                                                  name: k,
+                                                  count: v["count"],
+                                                  price: v["price"]
+                                                };
+                                              }),
+                                              investments: r7.rows
+                                            })
+                                          );
+                                        }
+                                      }
+                                    );
+                                  }
+                                }
+                              );
+                            }
+                          });
+                        } else {
+                          client.query(
+                            "SELECT * FROM investments WHERE accepted = true",
+                            (e7, r7) => {
+                              if (e7) {
+                                console.log(e7);
+                                res.status(500).send("err in db");
+                              } else {
+                                if (!did_insert) {
+                                  res.status(200).send(
+                                    JSON.stringify({
+                                      stocks: Object.entries(stocks).map(
+                                        ([k, v]) => {
+                                          return {
+                                            name: k,
+                                            count: v["count"],
+                                            price: v["price"]
+                                          };
+                                        }
+                                      ),
+                                      investments: r7.rows
+                                    })
+                                  );
+                                } else {
+                                  client.query(
+                                    query.slice(0, -2) + ";",
+                                    (e6, r6) => {
+                                      if (e6) {
+                                        console.log(e6);
+
+                                        res.status(500).send("err in db");
+                                      } else {
+                                        client.query(
+                                          sqlstring.format(q2, [
+                                            stocks["costco"].count,
+                                            stocks["macys"].count,
+                                            stocks["loblaws"].count,
+                                            stocks["tesla"].count
+                                          ]),
+                                          (e8, r8) => {
+                                            if (e8) {
+                                              console.log(e8);
+                                              res.status(500).send("err in db");
+                                            } else {
+                                              res.status(200).send(
+                                                JSON.stringify({
+                                                  stocks: Object.entries(
+                                                    stocks
+                                                  ).map(([k, v]) => {
+                                                    return {
+                                                      name: k,
+                                                      count: v["count"],
+                                                      price: v["price"]
+                                                    };
+                                                  }),
+                                                  investments: r7.rows
+                                                })
+                                              );
+                                            }
+                                          }
+                                        );
+                                      }
+                                    }
+                                  );
+                                }
+                              }
+                            }
+                          );
+                        }
+                      });
+                    }
+                  });
+                }
+              });
+            }
+          });
+        }
+      });
+    }
+  });
+});
+
 if (process.argv[2] === "--import") {
   const input = require("fs")
     .readFileSync(process.argv[3])
@@ -334,17 +560,49 @@ if (process.argv[2] === "--import") {
     comment: "#"
   });
 
-  let query = `INSERT INTO ${process.argv[4]}(date, type, amount, title) VALUES`;
+  let query = `INSERT INTO ${process.argv[4]}(date, type, amount, title, accepted) VALUES`;
   records.slice(1).forEach(s => {
     query += sqlstring.format("(?, ?, ?, ?),\n", [
       moment(s[0]).format("YYYY-MM-DD"),
       s[1] === "Withdrawl" ? "Withdrawal" : s[1],
       s[2],
-      s[3]
+      s[3],
+      true
     ]);
   });
 
   query = query.slice(0, -2) + ";";
+
+  client.query(query, (err, res) => {
+    if (err) {
+      console.log(err);
+    } else {
+      console.log("inserted");
+      process.exit(0);
+    }
+  });
+} else if (process.argv[2] === "--stocks") {
+  const input = require("fs")
+    .readFileSync(process.argv[3])
+    .toString();
+
+  const records = parse(input, {
+    comment: "#"
+  });
+
+  let query = `INSERT INTO ${process.argv[4]}(date, open, high, low, close) VALUES`;
+  records.slice(1).forEach(s => {
+    query += sqlstring.format("(?, ?, ?, ?, ?),\n", [
+      moment(s[0], "YYYY-MM-DD").format("YYYY-MM-DD"),
+      s[1].slice(1),
+      s[2].slice(1),
+      s[3].slice(1),
+      s[4].slice(1)
+    ]);
+  });
+
+  query = query.slice(0, -2) + ";";
+  console.log(query);
 
   client.query(query, (err, res) => {
     if (err) {
@@ -363,6 +621,35 @@ if (process.argv[2] === "--import") {
 function karen_bal(is_sav: boolean, cb: any) {
   const acc_t = is_sav ? "karen_sav" : "karen_check";
 
+  const w_query = sqlstring.format(
+    `SELECT SUM(amount) FROM ${acc_t} WHERE type = ?`,
+    ["Withdrawal"]
+  );
+
+  const d_query = sqlstring.format(
+    `SELECT SUM(amount) FROM ${acc_t} WHERE type = ?`,
+    ["Deposit"]
+  );
+
+  client.query(d_query, (e1, r1) => {
+    if (e1) {
+      console.log(e1);
+      return -1;
+    } else {
+      client.query(w_query, (e2, r2) => {
+        if (e2) {
+          console.log(e2);
+          return -1;
+        } else {
+          cb(r1.rows[0].sum - r2.rows[0].sum);
+        }
+      });
+    }
+  });
+}
+
+function karen_inv_bal(cb: any) {
+  const acc_t = "investments";
   const w_query = sqlstring.format(
     `SELECT SUM(amount) FROM ${acc_t} WHERE type = ?`,
     ["Withdrawal"]

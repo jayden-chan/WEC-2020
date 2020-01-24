@@ -103,6 +103,7 @@ export function renderTable(data, account) {
   } else {
     console.log("length", data[account].length);
     const items = data[account].map((row, i) => {
+      const date = moment(row.date);
       return (
         <TableRow key={i}>
           <TableCell component="th" scope="row">
@@ -110,18 +111,22 @@ export function renderTable(data, account) {
           </TableCell>
           <TableCell align="right">{row.amount}</TableCell>
           <TableCell align="right">{row.title}</TableCell>
-          <TableCell align="right">{row.date}</TableCell>
+          <TableCell align="right">
+            {moment(row.date).format("DD/MM/YYYY")}
+          </TableCell>
         </TableRow>
       );
     });
     const total = data[account].reduce(function(total, el) {
-      return total + el.amount;
+      if (el.type === "Deposit") {
+        return total + el.amount;
+      }
+      if (el.type === "Withdrawal") {
+        return total - el.amount;
+      }
     }, 0);
     return (
       <TableContainer>
-        <Typography align="left" variant="h6" id="tableTitle">
-          Total: ${total}
-        </Typography>
         <Table stickyHeader aria-label="sticky table">
           <TableHead>
             <TableRow>
@@ -131,7 +136,19 @@ export function renderTable(data, account) {
               <TableCell align="right">Date</TableCell>
             </TableRow>
           </TableHead>
-          <TableBody>{items}</TableBody>
+          <TableBody>
+            {items}
+            <TableRow key="sum">
+              <TableCell component="th" scope="row">
+                <b>Sum</b>
+              </TableCell>
+              <TableCell align="right">
+                <b>{total}</b>
+              </TableCell>
+              <TableCell align="right"></TableCell>
+              <TableCell align="right"></TableCell>
+            </TableRow>
+          </TableBody>
         </Table>
       </TableContainer>
     );
@@ -181,10 +198,6 @@ export default class Home extends Component {
         res.text().then(text => alert(text));
       }
     });
-
-    this.setState({
-      data: data
-    });
   };
 
   handleTransaction() {
@@ -200,11 +213,11 @@ export default class Home extends Component {
       i_type: this.state.transactionType,
       acc: this.state.transactionAccount,
       amount: this.state.transactionAmount,
-      title: this.state.transactionTitle
+      title: this.state.transactionTitle,
+      date: this.state.date.format("YYYY-MM-DD")
     });
 
     console.log(body);
-
     fetch(link, {
       method: "POST",
       headers: {
@@ -219,6 +232,8 @@ export default class Home extends Component {
         res.text().then(text => alert(text));
       }
     });
+
+    window.location.reload();
   }
 
   handleTransfer() {
@@ -231,6 +246,7 @@ export default class Home extends Component {
     fetch(link, {
       method: "POST",
       headers: {
+        "Content-Type": "application/json",
         Authorization: localStorage.getItem("bow-login-token")
       },
       body
@@ -241,6 +257,8 @@ export default class Home extends Component {
         res.text().then(text => alert(text));
       }
     });
+
+    window.location.reload();
   }
 
   transactionForm(isKaren) {
