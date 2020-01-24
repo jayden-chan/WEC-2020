@@ -17,6 +17,7 @@ export default class Login extends Component {
     };
 
     this.handleSubmit = this.handleSubmit.bind(this);
+    this.handleChange = this.handleChange.bind(this);
   }
 
   handleChange(event) {
@@ -31,7 +32,7 @@ export default class Login extends Component {
 
   handleSubmit(event) {
     console.log(this.state);
-    fetch("http://localhost:3001/login", {
+    fetch("http://localhost:3000/login", {
       method: "post",
       headers: {
         "Content-Type": "application/json"
@@ -61,9 +62,6 @@ export default class Login extends Component {
         console.log(err);
       });
 
-    localStorage.setItem("bow-login-token", JSON.stringify({ hi: "no idea" }));
-    console.log("token stored");
-    this.props.history.push("/");
     event.preventDefault();
   }
 

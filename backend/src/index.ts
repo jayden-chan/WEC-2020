@@ -1,6 +1,7 @@
 import * as express from "express";
 import { readdir, unlink, mkdirSync, stat } from "fs";
 import { resolve } from "path";
+import * as moment from "moment";
 
 import { verify_token, undef } from "./util";
 
@@ -35,64 +36,68 @@ app.get("/hello", (req, res) => {
   res.status(200).send("Hello there testing");
 });
 
-app.get("/karen_c", (req, res) => {
+app.get("/all", (req, res) => {
   const user_name = verify_token(req.headers.authorization, JWT_SECRET);
-  if (!user_name || user_name !== "karen") {
+  if (!user_name) {
     res.status(401).send("Not authorized");
     return;
   }
 
-  const query = "SELECT * FROM karen_check";
+  const k_c_query =
+    "SELECT date, type, amount, title FROM karen_check WHERE accepted = true";
 
-  client.query(query, (err, response) => {
-    if (err) {
-      console.log(err);
-      res.status(500).send("Error during db call");
-    } else {
-      res.status(200).send(JSON.stringify(response.rows));
-    }
-  });
-});
+  const k_s_query =
+    "SELECT date, type, amount, title FROM karen_sav WHERE accepted = true";
 
-app.get("/karen_s", (req, res) => {
-  const user_name = verify_token(req.headers.authorization, JWT_SECRET);
-  if (!user_name || user_name !== "karen") {
-    res.status(401).send("Not authorized");
-    return;
+  const b_query =
+    "SELECT date, type, amount, title FROM bobby WHERE accepted = true";
+
+  if (user_name === "karen") {
+    client.query(k_c_query, (e1, r1) => {
+      if (e1) {
+        console.log(e1);
+        res.status(500).send("Error during db call");
+      } else {
+        client.query(k_s_query, (e2, r2) => {
+          if (e2) {
+            console.log(e2);
+            res.status(500).send("Error during db call");
+          } else {
+            client.query(b_query, (e3, r3) => {
+              if (e3) {
+                console.log(e3);
+                res.status(500).send("Error during db call");
+              } else {
+                res.status(200).send(
+                  JSON.stringify({
+                    chequing: r1.rows,
+                    savings: r2.rows,
+                    bobby: r3.rows
+                  })
+                );
+              }
+            });
+          }
+        });
+      }
+    });
+  } else if (user_name === "bobby") {
+    client.query(b_query, (e3, r3) => {
+      if (e3) {
+        console.log(e3);
+        res.status(500).send("Error during db call");
+      } else {
+        res.status(200).send(
+          JSON.stringify({
+            bobby: r3.rows
+          })
+        );
+      }
+    });
   }
-
-  const query = "SELECT * FROM karen_sav";
-
-  client.query(query, (err, response) => {
-    if (err) {
-      console.log(err);
-      res.status(500).send("Error during db call");
-    } else {
-      res.status(200).send(JSON.stringify(response.rows));
-    }
-  });
 });
 
-app.get("/bobby", (req, res) => {
-  const user_name = verify_token(req.headers.authorization, JWT_SECRET);
-  if (!user_name || (user_name !== "karen" && user_name !== "bobby")) {
-    res.status(401).send("Not authorized");
-    return;
-  }
-
-  const query = "SELECT * FROM bobby";
-
-  client.query(query, (err, response) => {
-    if (err) {
-      console.log(err);
-      res.status(500).send("Error during db call");
-    } else {
-      res.status(200).send(JSON.stringify(response.rows));
-    }
-  });
-});
-
-app.post("/new_karen", (req, res) => {
+app.post("/karen", (req, res) => {
   const user_name = verify_token(req.headers.authorization, JWT_SECRET);
   if (!user_name || user_name !== "karen") {
     res.status(401).send("Not authorized");
@@ -113,9 +118,100 @@ app.post("/new_karen", (req, res) => {
     if (undef(date) || undef(i_type) || undef(amount) || undef(title)) {
       res.status(400).send("Missing data");
     }
+
+    if (req.body.i_type === "Withdrawal") {
+      karen_bal(acc_t === "karen_sav", bal => {
+        let accepted = true;
+        if (bal < amount) {
+          accepted = false;
+          res.status(400).send("Too low balance");
+        }
+
+        const insert_query = sqlstring.format(
+          `INSERT INTO ${acc_t}(date, type, amount, title, accepted) VALUES(?, ?, ?, ?, ?)`,
+          [date, i_type, amount, title, accepted]
+        );
+
+        client.query(insert_query, (err, response) => {
+          if (err) {
+            console.log(err);
+            if (accepted) {
+              res.status(500).send("Error occurred with db insert");
+            }
+          } else {
+            if (accepted) {
+              res.status(201).send("Data added");
+            }
+          }
+        });
+      });
+    } else {
+      const insert_query = sqlstring.format(
+        `INSERT INTO ${acc_t}(date, type, amount, title, accepted) VALUES(?, ?, ?, ?, ?)`,
+        [date, i_type, amount, title, true]
+      );
+
+      client.query(insert_query, (err, response) => {
+        if (err) {
+          console.log(err);
+          res.status(500).send("Error occurred with db insert");
+        } else {
+          res.status(201).send("Data added");
+        }
+      });
+    }
+  }
+});
+
+app.post("/bobby", (req, res) => {
+  const user_name = verify_token(req.headers.authorization, JWT_SECRET);
+  if (!user_name || (user_name !== "karen" && user_name !== "bobby")) {
+    res.status(401).send("Not authorized");
+    return;
+  }
+
+  const { date, i_type, amount, title } = req.body;
+  if (undef(date) || undef(i_type) || undef(amount) || undef(title)) {
+    res.status(400).send("Missing data");
+  }
+
+  if (req.body.i_type === "Withdrawal") {
+    bobby_bal(bal => {
+      let accepted = true;
+      if (bal < amount) {
+        accepted = false;
+        res.status(400).send("Too low balance");
+      }
+
+      bobby_today(date, am => {
+        if (accepted && am + amount > 100) {
+          accepted = false;
+          res.status(400).send("Your account is locked sorry");
+        }
+
+        const insert_query = sqlstring.format(
+          `INSERT INTO bobby(date, type, amount, title, accepted) VALUES(?, ?, ?, ?, ?)`,
+          [date, i_type, amount, title, accepted]
+        );
+
+        client.query(insert_query, (err, response) => {
+          if (err) {
+            console.log(err);
+            if (accepted) {
+              res.status(500).send("Error occurred with db insert");
+            }
+          } else {
+            if (accepted) {
+              res.status(201).send("Data added");
+            }
+          }
+        });
+      });
+    });
+  } else {
     const insert_query = sqlstring.format(
-      `INSERT INTO ${acc_t}(date, type, ammount, title) VALUES(?, ?, ? ?)`,
-      [date, i_type, amount, title]
+      `INSERT INTO bobby(date, type, amount, title, accepted) VALUES(?, ?, ?, ?, ?)`,
+      [date, i_type, amount, title, true]
     );
 
     client.query(insert_query, (err, response) => {
@@ -129,28 +225,39 @@ app.post("/new_karen", (req, res) => {
   }
 });
 
-app.post("/new_bobby", (req, res) => {
-  const user_name = verify_token(req.headers.authorization, JWT_SECRET);
-  if (!user_name || (user_name !== "karen" && user_name !== "bobby")) {
-    res.status(401).send("Not authorized");
-    return;
-  }
+app.post("/transfer", (req, res) => {
+  const { amount } = req.body;
 
-  const { date, i_type, amount, title } = req.body;
-  if (undef(date) || undef(i_type) || undef(amount) || undef(title)) {
-    res.status(400).send("Missing data");
-  }
-  const insert_query = sqlstring.format(
-    `INSERT INTO bobby(date, type, ammount, title) VALUES(?, ?, ? ?)`,
-    [date, i_type, amount, title]
-  );
-
-  client.query(insert_query, (err, response) => {
-    if (err) {
-      console.log(err);
-      res.status(500).send("Error occurred with db insert");
+  karen_bal(false, bal => {
+    if (bal < amount) {
+      res.status(400).send("Too low balance");
     } else {
-      res.status(201).send("Data added");
+      const time = moment().format("YYYY-MM-DD");
+      const insert_query = sqlstring.format(
+        `INSERT INTO karen_check(date, type, amount, title) VALUES(?, ?, ?, ?)`,
+        [time, "Withdrawal", amount, "Transfer to Bobby"]
+      );
+
+      const bobby_query = sqlstring.format(
+        `INSERT INTO bobby(date, type, amount, title) VALUES(?, ?, ?, ?)`,
+        [time, "Deposit", amount, "Transfer from Karen"]
+      );
+
+      client.query(insert_query, (e1, r1) => {
+        if (e1) {
+          console.log(e1);
+          res.status(500).send("Error occurred with db insert");
+        } else {
+          client.query(bobby_query, (e2, r2) => {
+            if (e2) {
+              console.log(e2);
+              res.status(500).send("Error occurred with db insert");
+            } else {
+              res.status(201).send("Data added");
+            }
+          });
+        }
+      });
     }
   });
 });
@@ -226,3 +333,81 @@ app.post("/signup", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });
+
+function karen_bal(is_sav: boolean, cb: any) {
+  const acc_t = is_sav ? "karen_sav" : "karen_check";
+
+  const w_query = sqlstring.format(
+    `SELECT SUM(amount) FROM ${acc_t} WHERE type = ?`,
+    ["Withdrawal"]
+  );
+
+  const d_query = sqlstring.format(
+    `SELECT SUM(amount) FROM ${acc_t} WHERE type = ?`,
+    ["Deposit"]
+  );
+
+  client.query(d_query, (e1, r1) => {
+    if (e1) {
+      console.log(e1);
+      return -1;
+    } else {
+      client.query(w_query, (e2, r2) => {
+        if (e2) {
+          console.log(e2);
+          return -1;
+        } else {
+          cb(r1.rows[0].sum - r2.rows[0].sum);
+        }
+      });
+    }
+  });
+}
+
+function bobby_bal(cb: any) {
+  const w_query = sqlstring.format(
+    `SELECT SUM(amount) FROM bobby WHERE type = ? AND accepted = true`,
+    ["Withdrawal"]
+  );
+
+  const d_query = sqlstring.format(
+    `SELECT SUM(amount) FROM bobby WHERE type = ? AND accepted = true`,
+    ["Deposit"]
+  );
+
+  client.query(d_query, (e1, r1) => {
+    if (e1) {
+      console.log(e1);
+      return -1;
+    } else {
+      client.query(w_query, (e2, r2) => {
+        if (e2) {
+          console.log(e2);
+          return -1;
+        } else {
+          cb(r1.rows[0].sum - r2.rows[0].sum);
+        }
+      });
+    }
+  });
+}
+
+function bobby_today(date: string, cb: any) {
+  const d_query = sqlstring.format(
+    `SELECT * FROM bobby WHERE date = ? AND type = ?`,
+    [moment(date).format("YYYY-MM-DD"), "Withdrawal"]
+  );
+
+  client.query(d_query, (e1, r1) => {
+    if (e1) {
+      console.log(e1);
+      return -1;
+    } else {
+      cb(
+        r1.rows.reduce((acc, curr) => {
+          return acc + curr.amount;
+        }, 0)
+      );
+    }
+  });
+}

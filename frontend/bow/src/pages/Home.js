@@ -115,23 +115,19 @@ export default class Home extends Component {
       this.props.history.push("/login");
       return;
     }
-    // const link = "http://localhost:3001/list";
-    // fetch(link, {
-    //   method: "GET",
-    //   headers: {
-    //     Authorization: localStorage.getItem("guugle-login-token")
-    //   }
-    // }).then(res => {
-    //   if (res.status === 200) {
-    //     res.json().then(json => this.setState({ files: json }));
-    //   } else {
-    //     res.text().then(text => alert(text));
-    //   }
-    // });
 
-    this.setState({
-      data: data,
-      isKaren: "savings" in data
+    const link = "http://localhost:3000/all";
+    fetch(link, {
+      method: "GET",
+      headers: {
+        Authorization: localStorage.getItem("bow-login-token")
+      }
+    }).then(res => {
+      if (res.status === 200) {
+        res.json().then(json => this.setState({ data: json }));
+      } else {
+        res.text().then(text => alert(text));
+      }
     });
   };
 
@@ -142,7 +138,28 @@ export default class Home extends Component {
       amount: this.state.transactionAmount,
       title: this.state.transactionTitle
     });
-    console.log("body", body);
+
+    const acc = this.state.transactionAccount;
+    let link = "http://localhost:3000/";
+    if (acc === "c" || acc === "s") {
+      link += "karen";
+    } else {
+      link += "bobby";
+    }
+
+    fetch(link, {
+      method: "POST",
+      headers: {
+        Authorization: localStorage.getItem("bow-login-token")
+      },
+      body
+    }).then(res => {
+      if (res.status === 200) {
+        res.json().then(json => this.setState({ data: json }));
+      } else {
+        res.text().then(text => alert(text));
+      }
+    });
   }
 
   renderTable(account) {
