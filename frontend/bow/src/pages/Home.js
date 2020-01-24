@@ -114,14 +114,13 @@ export function renderTable(data, account) {
         </TableRow>
       );
     });
-
+    const total = data[account].reduce(function(total, el) {
+      return total + el.amount;
+    }, 0);
     return (
       <TableContainer>
         <Typography align="left" variant="h6" id="tableTitle">
-          Total:{" "}
-          {data[account].reduce(function(total, el) {
-            return total + el.amount;
-          }, 0)}
+          Total: ${total}
         </Typography>
         <Table stickyHeader aria-label="sticky table">
           <TableHead>
@@ -284,7 +283,7 @@ export default class Home extends Component {
           >
             {isKaren && <MenuItem value="s">Savings</MenuItem>}
             {isKaren && <MenuItem value="c">Chequing</MenuItem>}
-            <MenuItem value="b">Bobby</MenuItem>
+            {!isKaren && <MenuItem value="b">Bobby</MenuItem>}
           </Select>
         </StyledFormControl>
         <br></br>
@@ -396,7 +395,9 @@ export default class Home extends Component {
             {renderTable(this.state.data, "chequing")}
           </>
         )}
-        <Typography variant="h5" align="left"></Typography>
+        <Typography variant="h5" align="left">
+          Bobby
+        </Typography>
         {renderTable(this.state.data, "bobby")}
 
         <Grid container spacing={3} style={{ marginTop: "1.5em" }}>

@@ -7,8 +7,32 @@ import ButtonGroup from "@material-ui/core/ButtonGroup";
 import Grid from "@material-ui/core/Grid";
 import Paper from "@material-ui/core/Paper";
 import CircularProgress from "@material-ui/core/CircularProgress";
+import styled from "styled-components";
+
+import Table from "@material-ui/core/Table";
+import TableBody from "@material-ui/core/TableBody";
+import TableCell from "@material-ui/core/TableCell";
+import TableContainer from "@material-ui/core/TableContainer";
+import TableHead from "@material-ui/core/TableHead";
+import TableRow from "@material-ui/core/TableRow";
+import TextField from "@material-ui/core/TextField";
 
 import moment from "moment";
+
+const StyledRow = styled.tr`
+  border: 3px solid grey;
+  border-radius: 3px;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  margin: 10px 0;
+`;
+const StyledCell = styled.td`
+  border-left: 1px solid black;
+  border-right: 1px solid black;
+  padding: 10px;
+  width: 100px;
+`;
 
 export default class Investments extends Component {
   constructor(props) {
@@ -44,22 +68,23 @@ export default class Investments extends Component {
       return;
     }
 
-    const link = "http://localhost:3000/date";
-    // fetch(link, {
-    //   method: "POST",
-    //   headers: {
-    //     Authorization: localStorage.getItem("bow-login-token")
-    //   },
-    //   body: {
-    //     date: this.state.date.format("YYYY-MM-DD")
-    //   }
-    // }).then(res => {
-    //   if (res.status === 200) {
-    //     res.json().then(json => this.setState({ data: json }));
-    //   } else {
-    //     res.text().then(text => alert(text));
-    //   }
-    // });
+    const link = "http://localhost:3000/update_stocks";
+    fetch(link, {
+      method: "POST",
+      headers: {
+        Authorization: localStorage.getItem("bow-login-token")
+      },
+      body: {
+        date: this.state.date.format("YYYY-MM-DD")
+      }
+    }).then(res => {
+      if (res.status === 200) {
+        res.json().then(json => this.setState({ data: json }));
+      } else {
+        res.text().then(text => alert(text));
+        this.props.history.push("/");
+      }
+    });
   };
 
   dayAdd() {
@@ -109,47 +134,23 @@ export default class Investments extends Component {
 
   stockRow(name, price, count) {
     return (
-      <div
-        style={{
-          display: "flex",
-          width: "100%",
-          justifyContent: "space-between"
-        }}
-      >
-        <div
-          style={{
-            border: "1px solid black",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center"
-          }}
-        >
-          <div
-            style={{
-              height: "50px",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center"
-            }}
-          >
-            {name}
-          </div>
-        </div>
-        <div>
-          <Paper>${price}</Paper>
-        </div>
-        <div>
-          <Paper>{count}</Paper>
-        </div>
-        <div>
-          <Paper>${price * count}</Paper>
-        </div>
-      </div>
+      <TableRow key={name}>
+        <TableCell component="th" scope="row">
+          {name}
+        </TableCell>
+        <TableCell align="right">{price}</TableCell>
+        <TableCell align="right">{count}</TableCell>
+        <TableCell align="right">{price * count}</TableCell>
+      </TableRow>
     );
   }
 
   render() {
     console.log("data", this.state.data.stocks);
+    const sum = this.state.data.stocks.reduce(function(total, el) {
+      return total + el.count * el.price;
+    }, 0);
+    console.log(sum);
     return (
       <Layout>
         <Typography variant="h4" align="left">
@@ -173,33 +174,33 @@ export default class Investments extends Component {
         <br></br>
         <br></br>
         {this.state.data ? (
-          <Grid container spacing={1}>
-            {this.state.data.stocks.map(el => (
-              <Grid container item xs={12} spacing={1}>
-                {this.stockRow(el.name, el.price, el.count)}
-              </Grid>
-            ))}
-            <Grid container item xs={12} spacing={1}>
-              <Grid item xs={3}>
-                <Paper></Paper>
-              </Grid>
-              <Grid item xs={3}>
-                <Paper></Paper>
-              </Grid>
-              <Grid item xs={3}>
-                <Paper></Paper>
-              </Grid>
-              <Grid item xs={3}>
-                <Paper>hello</Paper>
-              </Grid>
-            </Grid>
-          </Grid>
+          <Table stickyHeader aria-label="sticky table">
+            <TableHead>
+              <TableRow>
+                <TableCell align="left">Name</TableCell>
+                <TableCell align="right">Price($)</TableCell>
+                <TableCell align="right">Count</TableCell>
+                <TableCell align="right">Sum($)</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {this.state.data.stocks.map(el =>
+                this.stockRow(el.name, el.price, el.count)
+              )}
+              <TableRow key="sum">
+                <TableCell component="th" scope="row"></TableCell>
+                <TableCell align="right"></TableCell>
+                <TableCell align="right"></TableCell>
+                <TableCell align="right">{sum}</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
         ) : (
           <CircularProgress color="green"></CircularProgress>
         )}
 
         <Typography variant="h5" align="left">
-          Current Portfolio Value: $100,000,000
+          Current Portfolio Value: ${sum}
         </Typography>
         <Typography variant="h5" align="left">
           Transaction History
