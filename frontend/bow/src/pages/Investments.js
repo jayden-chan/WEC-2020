@@ -133,11 +133,21 @@ export default class Investments extends Component {
     console.log(sum);
     return (
       <Layout>
-        <Typography variant="h4" align="left">
-          Investments
-        </Typography>
+        <Grid
+          container
+          direction="row"
+          justify="space-between"
+          alignItems="flex-start"
+        >
+          <Typography variant="h4" align="left">
+            Investments
+          </Typography>
+          <Typography variant="p" align="right" style={{ marginTop: "0" }}>
+            Current Portfolio Value: <b>${sum}</b>
+          </Typography>
+        </Grid>
         <Typography variant="h5" align="left">
-          Date: {this.state.date.format("dddd, MMMM Do YYYY")}
+          Date: {this.state.date.format("YYYY-MM-DD")}
         </Typography>
         <ButtonGroup
           color="primary"
@@ -151,8 +161,9 @@ export default class Investments extends Component {
         </ButtonGroup>
         <br></br>
         <br></br>
-        <br></br>
-        <br></br>
+        <Typography variant="h5" align="left">
+          Stocks
+        </Typography>
         {this.state.data ? (
           <Table stickyHeader aria-label="sticky table">
             <TableHead>
@@ -179,9 +190,6 @@ export default class Investments extends Component {
           <CircularProgress color="green"></CircularProgress>
         )}
 
-        <Typography variant="h5" align="left">
-          Current Portfolio Value: ${sum}
-        </Typography>
         <Typography variant="h5" align="left">
           Transaction History
         </Typography>
