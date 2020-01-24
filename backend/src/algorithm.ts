@@ -85,6 +85,7 @@ export function processStocks(
     if (buy && !sell) {
       shouldBuyStock[company] = true;
     } else if (sell && !buy) {
+      console.log("selling");
       shouldBuyStock[company] = false;
     }
   });

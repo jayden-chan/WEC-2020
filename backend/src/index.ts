@@ -411,7 +411,10 @@ app.post("/update_stocks", (req, res) => {
                           const i_type = v > 0 ? "Withdrawal" : "Deposit";
                           const price = v * data[k][29].open;
                           const name = k.charAt(0).toUpperCase() + k.slice(1);
-                          const title = `StockBot: Purchase ${v} stocks from ${name}`;
+                          const title =
+                            i_type === "Withdrawal"
+                              ? `StockBot: Purchase ${v} stocks from ${name}`
+                              : `StockBot: Sell ${-v} stocks from ${name}`;
                           query += sqlstring.format("(?, ?, ?, ?, ?)\n,", [
                             date,
                             i_type,
