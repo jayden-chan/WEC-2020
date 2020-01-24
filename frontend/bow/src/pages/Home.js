@@ -103,6 +103,7 @@ export function renderTable(data, account) {
   } else {
     console.log("length", data[account].length);
     const items = data[account].map((row, i) => {
+      const date = moment(row.date);
       return (
         <TableRow key={i}>
           <TableCell component="th" scope="row">
@@ -110,7 +111,9 @@ export function renderTable(data, account) {
           </TableCell>
           <TableCell align="right">{row.amount}</TableCell>
           <TableCell align="right">{row.title}</TableCell>
-          <TableCell align="right">{row.date}</TableCell>
+          <TableCell align="right">
+            {moment(row.date).format("DD/MM/YYYY")}
+          </TableCell>
         </TableRow>
       );
     });
@@ -219,6 +222,8 @@ export default class Home extends Component {
         res.text().then(text => alert(text));
       }
     });
+
+    this.setState({ transactionAmount: "" });
   }
 
   handleTransfer() {
@@ -241,6 +246,8 @@ export default class Home extends Component {
         res.text().then(text => alert(text));
       }
     });
+
+    this.setState({ transactionAmount: "" });
   }
 
   transactionForm(isKaren) {
