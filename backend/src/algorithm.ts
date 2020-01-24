@@ -1,3 +1,5 @@
+import { brotliDecompress } from "zlib";
+
 type StockTransaction = {
   tesla: number;
   costco: number;
@@ -49,8 +51,8 @@ function fiveDayrule(days: MarketDay[]): boolean {
 }
 
 function sevenDayRule(days: MarketDay[]): boolean {
-  if (days[1].open <= 0.85 * days[0].open) {
-    if (days[6].open <= days[0].open * 0.925) {
+  if (days[1].close <= 0.85 * days[0].close) {
+    if (days[6].close <= days[0].close * 0.925) {
       return true;
     }
   }
@@ -67,24 +69,45 @@ function shouldBuy(lastMonth: MarketDay[]): boolean {
 
 export function processStocks(
   companyStocks: MarketStocks,
-  ownedStocks: ShouldBuyStock,
+  ownedStocks: StockTransaction,
   budget: number
 ): StockTransaction {
   let shouldBuyStock: ShouldBuyStock;
   let finalPurchase: StockTransaction;
   Object.entries(companyStocks).forEach(([company, monthStocks]) => {
-    if (shouldSell(monthStocks)) {
-      shouldBuyStock[company] = false;
-    } else if (shouldBuy(monthStocks)) {
+    const shouldSellStock = shouldSell(monthStocks);
+    const shouldBuyStock = shouldBuy(monthStocks);
+    if (shouldBuyStock && !shouldSellStock) {
       shouldBuyStock[company] = true;
+    } else if (shouldSellStock && !shouldBuyStock) {
+      shouldBuyStock[company] === false;
     }
   });
-  const numOfStockToBuy: number = Object.values(shouldBuyStock).filter(
+  Object.entries(shouldBuyStock).forEach(([company, shouldBuy]) => {
+    if (shouldBuy === false) {
+      finalPurchase[company] = -ownedStocks[company];
+      budget += ownedStocks[company] * companyStocks[company][29].open;
+    }
+  });
+
+  const numOfCompaniesToBuy: number = Object.values(shouldBuyStock).filter(
     (v: boolean) => v
   ).length;
+
+  const perStockBudget = Math.floor(budget / numOfCompaniesToBuy);
   Object.entries(shouldBuyStock).forEach(([company, shouldBuy]) => {
-    if (shouldBuy) {
-      finalPurchase[company] = Math.floor(budget / numOfStockToBuy);
+    let moneySpent = 0;
+    const costOfStockToday = companyStocks[company][29].open;
+    while (moneySpent + costOfStockToday < perStockBudget) {
+      if (shouldBuy) {
+        finalPurchase[company] += 1;
+        moneySpent += costOfStockToday;
+      } else if (shouldBuy === undefined) {
+        finalPurchase[company] = 0;
+        return;
+      } else {
+        return;
+      }
     }
   });
 
