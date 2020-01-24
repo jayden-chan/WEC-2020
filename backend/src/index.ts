@@ -170,17 +170,23 @@ app.post("/bobby", (req, res) => {
       if (bal < amount) {
         res.status(400).send("Too low balance");
       } else {
-        const insert_query = sqlstring.format(
-          `INSERT INTO bobby(date, type, amount, title) VALUES(?, ?, ?, ?)`,
-          [date, i_type, amount, title]
-        );
-
-        client.query(insert_query, (err, response) => {
-          if (err) {
-            console.log(err);
-            res.status(500).send("Error occurred with db insert");
+        bobby_today(am => {
+          if (am >= 100) {
+            res.status(400).send("Your account is locked sorry");
           } else {
-            res.status(201).send("Data added");
+            const insert_query = sqlstring.format(
+              `INSERT INTO bobby(date, type, amount, title) VALUES(?, ?, ?, ?)`,
+              [date, i_type, amount, title]
+            );
+
+            client.query(insert_query, (err, response) => {
+              if (err) {
+                console.log(err);
+                res.status(500).send("Error occurred with db insert");
+              } else {
+                res.status(201).send("Data added");
+              }
+            });
           }
         });
       }
@@ -369,17 +375,22 @@ function bobby_bal(cb: any) {
   });
 }
 
-function is_bobby_locked(cb: any) {
-  const d_query = sqlstring.format(`SELECT FROM lock WHERE timestamp = ?`, [
-    moment().format()
-  ]);
+function bobby_today(cb: any) {
+  const d_query = sqlstring.format(
+    `SELECT * FROM bobby WHERE date = ? AND type = ?`,
+    [moment().format("YYYY-MM-DD"), "Withdrawl"]
+  );
 
   client.query(d_query, (e1, r1) => {
     if (e1) {
       console.log(e1);
       return -1;
     } else {
-      cb(r1.rows.some(row => row.is_locked === true));
+      cb(
+        r1.rows.reduce((acc, curr) => {
+          acc += curr.amount;
+        }, 0)
+      );
     }
   });
 }
