@@ -2,7 +2,7 @@ import * as express from "express";
 import { readdir, unlink, mkdirSync, stat } from "fs";
 import { resolve } from "path";
 
-import { verify_token } from "./util";
+import { verify_token, undef } from "./util";
 
 import * as cors from "cors";
 import * as fileUpload from "express-fileupload";
@@ -14,11 +14,11 @@ const JWT_SECRET = process.env.JWT_SECRET || "Hello there testing";
 
 const { Pool } = require("pg");
 const client = new Pool({
-  connectionString: "postgres://jayden@localhost/users",
+  connectionString: "postgres://jayden@localhost/wec-2020",
   ssl: false
 });
 
-const PORT = 3001;
+const PORT = 3000;
 
 const app = express();
 app.use(
@@ -35,13 +35,171 @@ app.get("/hello", (req, res) => {
   res.status(200).send("Hello there testing");
 });
 
-app.get("/list", (req, res) => {});
+app.get("/karen_c", (req, res) => {
+  const user_name = verify_token(req.headers.authorization, JWT_SECRET);
+  if (!user_name || user_name !== "karen") {
+    res.status(401).send("Not authorized");
+    return;
+  }
 
-app.post("/upload", (req, res) => {});
+  const query = "SELECT * FROM karen_check";
 
-app.delete("/delete/:filename", (req, res) => {});
+  client.query(query, (err, response) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Error during db call");
+    } else {
+      res.status(200).send(JSON.stringify(response.rows));
+    }
+  });
+});
 
-app.get("/file/:filename", (req, res) => {});
+app.get("/karen_s", (req, res) => {
+  const user_name = verify_token(req.headers.authorization, JWT_SECRET);
+  if (!user_name || user_name !== "karen") {
+    res.status(401).send("Not authorized");
+    return;
+  }
+
+  const query = "SELECT * FROM karen_sav";
+
+  client.query(query, (err, response) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Error during db call");
+    } else {
+      res.status(200).send(JSON.stringify(response.rows));
+    }
+  });
+});
+
+app.get("/bobby", (req, res) => {
+  const user_name = verify_token(req.headers.authorization, JWT_SECRET);
+  if (!user_name || (user_name !== "karen" && user_name !== "bobby")) {
+    res.status(401).send("Not authorized");
+    return;
+  }
+
+  const query = "SELECT * FROM bobby";
+
+  client.query(query, (err, response) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send("Error during db call");
+    } else {
+      res.status(200).send(JSON.stringify(response.rows));
+    }
+  });
+});
+
+app.post("/karen", (req, res) => {
+  const user_name = verify_token(req.headers.authorization, JWT_SECRET);
+  if (!user_name || user_name !== "karen") {
+    res.status(401).send("Not authorized");
+    return;
+  }
+
+  const acc_t =
+    req.body.acc === "c"
+      ? "karen_check"
+      : req.body.acc === "s"
+      ? "karen_sav"
+      : null;
+
+  if (!acc_t) {
+    res.status(400).send("Invalid account type");
+  } else {
+    const { date, i_type, amount, title } = req.body;
+    if (undef(date) || undef(i_type) || undef(amount) || undef(title)) {
+      res.status(400).send("Missing data");
+    }
+
+    if (req.body.i_type === "Withdrawl") {
+      karen_bal(acc_t === "karen_sav", bal => {
+        if (bal < amount) {
+          res.status(400).send("Too low balance");
+        } else {
+          const insert_query = sqlstring.format(
+            `INSERT INTO ${acc_t}(date, type, amount, title) VALUES(?, ?, ?, ?)`,
+            [date, i_type, amount, title]
+          );
+
+          client.query(insert_query, (err, response) => {
+            if (err) {
+              console.log(err);
+              res.status(500).send("Error occurred with db insert");
+            } else {
+              res.status(201).send("Data added");
+            }
+          });
+        }
+      });
+    } else {
+      const insert_query = sqlstring.format(
+        `INSERT INTO ${acc_t}(date, type, amount, title) VALUES(?, ?, ?, ?)`,
+        [date, i_type, amount, title]
+      );
+
+      client.query(insert_query, (err, response) => {
+        if (err) {
+          console.log(err);
+          res.status(500).send("Error occurred with db insert");
+        } else {
+          res.status(201).send("Data added");
+        }
+      });
+    }
+  }
+});
+
+app.post("/bobby", (req, res) => {
+  const user_name = verify_token(req.headers.authorization, JWT_SECRET);
+  if (!user_name || (user_name !== "karen" && user_name !== "bobby")) {
+    res.status(401).send("Not authorized");
+    return;
+  }
+
+  const { date, i_type, amount, title } = req.body;
+  if (undef(date) || undef(i_type) || undef(amount) || undef(title)) {
+    res.status(400).send("Missing data");
+  }
+
+  if (req.body.i_type === "Withdrawl") {
+    bobby_bal(bal => {
+      if (bal < amount) {
+        res.status(400).send("Too low balance");
+      } else {
+        const insert_query = sqlstring.format(
+          `INSERT INTO bobby(date, type, amount, title) VALUES(?, ?, ?, ?)`,
+          [date, i_type, amount, title]
+        );
+
+        client.query(insert_query, (err, response) => {
+          if (err) {
+            console.log(err);
+            res.status(500).send("Error occurred with db insert");
+          } else {
+            res.status(201).send("Data added");
+          }
+        });
+      }
+    });
+  } else {
+    const insert_query = sqlstring.format(
+      `INSERT INTO bobby(date, type, amount, title) VALUES(?, ?, ?, ?)`,
+      [date, i_type, amount, title]
+    );
+
+    client.query(insert_query, (err, response) => {
+      if (err) {
+        console.log(err);
+        res.status(500).send("Error occurred with db insert");
+      } else {
+        res.status(201).send("Data added");
+      }
+    });
+  }
+});
 
 app.post("/login", (req, res) => {
   const query = sqlstring.format(
@@ -114,3 +272,61 @@ app.post("/signup", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });
+
+function karen_bal(is_sav: boolean, cb: any) {
+  const acc_t = is_sav ? "karen_sav" : "karen_check";
+
+  const w_query = sqlstring.format(
+    `SELECT SUM(amount) FROM ${acc_t} WHERE type = ?`,
+    ["Withdrawl"]
+  );
+
+  const d_query = sqlstring.format(
+    `SELECT SUM(amount) FROM ${acc_t} WHERE type = ?`,
+    ["Deposit"]
+  );
+
+  client.query(d_query, (e1, r1) => {
+    if (e1) {
+      console.log(e1);
+      return -1;
+    } else {
+      client.query(w_query, (e2, r2) => {
+        if (e2) {
+          console.log(e2);
+          return -1;
+        } else {
+          cb(r1.rows[0].sum - r2.rows[0].sum);
+        }
+      });
+    }
+  });
+}
+
+function bobby_bal(cb: any) {
+  const w_query = sqlstring.format(
+    `SELECT SUM(amount) FROM bobby WHERE type = ?`,
+    ["Withdrawl"]
+  );
+
+  const d_query = sqlstring.format(
+    `SELECT SUM(amount) FROM bobby WHERE type = ?`,
+    ["Deposit"]
+  );
+
+  client.query(d_query, (e1, r1) => {
+    if (e1) {
+      console.log(e1);
+      return -1;
+    } else {
+      client.query(w_query, (e2, r2) => {
+        if (e2) {
+          console.log(e2);
+          return -1;
+        } else {
+          cb(r1.rows[0].sum - r2.rows[0].sum);
+        }
+      });
+    }
+  });
+}
