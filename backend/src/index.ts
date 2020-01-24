@@ -12,6 +12,8 @@ import * as jwt from "jsonwebtoken";
 import * as sqlstring from "sqlstring";
 import * as parse from "csv-parse/lib/sync";
 
+import { processStocks } from "./algorithm";
+
 const JWT_SECRET = process.env.JWT_SECRET || "Hello there testing";
 
 const { Pool } = require("pg");
@@ -221,6 +223,11 @@ app.post("/bobby", (req, res) => {
 });
 
 app.post("/transfer", (req, res) => {
+  const user_name = verify_token(req.headers.authorization, JWT_SECRET);
+  if (!user_name) {
+    res.status(401).send("Not authorized");
+    return;
+  }
   const { amount } = req.body;
 
   karen_bal(false, bal => {
@@ -325,6 +332,76 @@ app.post("/signup", (req, res) => {
   });
 });
 
+app.post("/update_stocks", (req, res) => {
+  const user_name = verify_token(req.headers.authorization, JWT_SECRET);
+  if (!user_name || user_name !== "karen") {
+    res.status(401).send("Not authorized");
+    return;
+  }
+
+  const { date } = req.body;
+  if (!date) {
+    res.status(401).send("No date");
+    return;
+  }
+
+  const our_stocks = `SELECT * FROM stocks`;
+
+  const query = s =>
+    sqlstring.format(
+      `SELECT * FROM ${s} WHERE date < ? ORDER BY date DESC LIMIT 30`,
+      [date]
+    );
+
+  client.query(query("tesla"), (e1, r1) => {
+    if (e1) {
+      console.log(e1);
+      res.status(500).send("err in db");
+    } else {
+      client.query(query("loblaws"), (e2, r2) => {
+        if (e2) {
+          console.log(e2);
+          res.status(500).send("err in db");
+        } else {
+          client.query(query("macys"), (e3, r3) => {
+            if (e3) {
+              console.log(e3);
+              res.status(500).send("err in db");
+            } else {
+              client.query(query("costco"), (e4, r4) => {
+                if (e4) {
+                  console.log(e4);
+                  res.status(500).send("err in db");
+                } else {
+                  client.query(our_stocks, (e5, r5) => {
+                    if (e5) {
+                      console.log(e5);
+                      res.status(500).send("err in db");
+                    } else {
+                      karen_inv_bal(bal => {
+                        const data = {
+                          tesla: r1.rows,
+                          loblaws: r2.rows,
+                          macys: r3.rows,
+                          costco: r4.rows
+                        };
+
+                        const updates = processStocks(data, r5.rows[0], bal);
+                        console.log(updates);
+                        res.status(200).send(JSON.stringify(updates));
+                      });
+                    }
+                  });
+                }
+              });
+            }
+          });
+        }
+      });
+    }
+  });
+});
+
 if (process.argv[2] === "--import") {
   const input = require("fs")
     .readFileSync(process.argv[3])
@@ -355,6 +432,37 @@ if (process.argv[2] === "--import") {
       process.exit(0);
     }
   });
+} else if (process.argv[2] === "--stocks") {
+  const input = require("fs")
+    .readFileSync(process.argv[3])
+    .toString();
+
+  const records = parse(input, {
+    comment: "#"
+  });
+
+  let query = `INSERT INTO ${process.argv[4]}(date, open, high, low, close) VALUES`;
+  records.slice(1).forEach(s => {
+    query += sqlstring.format("(?, ?, ?, ?, ?),\n", [
+      moment(s[0], "YYYY-MM-DD").format("YYYY-MM-DD"),
+      s[1].slice(1),
+      s[2].slice(1),
+      s[3].slice(1),
+      s[4].slice(1)
+    ]);
+  });
+
+  query = query.slice(0, -2) + ";";
+  console.log(query);
+
+  client.query(query, (err, res) => {
+    if (err) {
+      console.log(err);
+    } else {
+      console.log("inserted");
+      process.exit(0);
+    }
+  });
 } else {
   app.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);
@@ -364,6 +472,35 @@ if (process.argv[2] === "--import") {
 function karen_bal(is_sav: boolean, cb: any) {
   const acc_t = is_sav ? "karen_sav" : "karen_check";
 
+  const w_query = sqlstring.format(
+    `SELECT SUM(amount) FROM ${acc_t} WHERE type = ?`,
+    ["Withdrawal"]
+  );
+
+  const d_query = sqlstring.format(
+    `SELECT SUM(amount) FROM ${acc_t} WHERE type = ?`,
+    ["Deposit"]
+  );
+
+  client.query(d_query, (e1, r1) => {
+    if (e1) {
+      console.log(e1);
+      return -1;
+    } else {
+      client.query(w_query, (e2, r2) => {
+        if (e2) {
+          console.log(e2);
+          return -1;
+        } else {
+          cb(r1.rows[0].sum - r2.rows[0].sum);
+        }
+      });
+    }
+  });
+}
+
+function karen_inv_bal(cb: any) {
+  const acc_t = "investments";
   const w_query = sqlstring.format(
     `SELECT SUM(amount) FROM ${acc_t} WHERE type = ?`,
     ["Withdrawal"]

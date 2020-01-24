@@ -40,7 +40,7 @@ function shouldSell(lastMonth: MarketDay[]): boolean {
 }
 
 function fiveDayrule(days: MarketDay[]): boolean {
-  if ((days[2].open > days[0].open * 1, 2)) {
+  if (days[2].open > days[0].open * 1.2) {
     if (days[4].open < days[2].open * 1.05) {
       return true;
     }
@@ -58,11 +58,7 @@ function sevenDayRule(days: MarketDay[]): boolean {
 }
 
 function shouldBuy(lastMonth: MarketDay[]): boolean {
-  const average = lastMonth.reduce(
-    (acc: number, cur: MarketDay) => (acc += cur.close / lastMonth.length),
-    0
-  );
-  return average > lastMonth[0].open * 1.15;
+  return lastMonth[29].open > lastMonth[0].open * 1.15;
 }
 
 export function processStocks(
@@ -70,18 +66,29 @@ export function processStocks(
   ownedStocks: StockTransaction,
   budget: number
 ): StockTransaction {
-  let shouldBuyStock: ShouldBuyStock;
-  let finalPurchase: StockTransaction;
+  let shouldBuyStock: ShouldBuyStock = {
+    costco: undefined,
+    macys: undefined,
+    loblaws: undefined,
+    tesla: undefined
+  };
+  let finalPurchase: StockTransaction = {
+    costco: 0,
+    macys: 0,
+    loblaws: 0,
+    tesla: 0
+  };
   // Set which stocks to sell and buy
   Object.entries(companyStocks).forEach(([company, monthStocks]) => {
-    const shouldSellStock = shouldSell(monthStocks);
-    const shouldBuyStock = shouldBuy(monthStocks);
-    if (shouldBuyStock && !shouldSellStock) {
+    const sell = shouldSell(monthStocks);
+    const buy = shouldBuy(monthStocks);
+    if (buy && !sell) {
       shouldBuyStock[company] = true;
-    } else if (shouldSellStock && !shouldBuyStock) {
-      shouldBuyStock[company] === false;
+    } else if (sell && !buy) {
+      shouldBuyStock[company] = false;
     }
   });
+
   // Sell stocks and add sales to budget
   Object.entries(shouldBuyStock).forEach(([company, shouldBuy]) => {
     if (shouldBuy === false) {
