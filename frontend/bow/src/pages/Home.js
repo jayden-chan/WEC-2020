@@ -99,12 +99,13 @@ export default class Home extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      data: data,
+      data: {},
       transactionDate: "",
       transactionType: "",
       transactionAmount: null,
       transactionAccount: "",
-      transactionTitle: ""
+      transactionTitle: "",
+      isKaren: false
     };
     this.handleSubmit = this.handleSubmit.bind(this);
   }
@@ -127,9 +128,11 @@ export default class Home extends Component {
     //     res.text().then(text => alert(text));
     //   }
     // });
-    // this.setState({
-    //   data: data
-    // });
+
+    this.setState({
+      data: data,
+      isKaren: "savings" in data
+    });
   };
 
   handleSubmit() {
@@ -143,7 +146,11 @@ export default class Home extends Component {
   }
 
   renderTable(account) {
-    console.log(this.state.data);
+    console.log("state", this.state.data);
+    if (!this.state.data || Object.entries(this.state.data).length === 0) {
+      console.log("data is null");
+      return;
+    }
     if (this.state.data[account].length === 0) {
       return <div>You have no transactions</div>;
     } else {
@@ -256,7 +263,7 @@ export default class Home extends Component {
         <Typography variant="h4" align="left">
           Transactions
         </Typography>
-        {"savings" in this.state.data && (
+        {this.state.isKaren && (
           <>
             <Typography variant="h5" align="left">
               Savings
@@ -264,7 +271,7 @@ export default class Home extends Component {
             {this.renderTable("savings")}
           </>
         )}
-        {"chequing" in this.state.data && (
+        {this.state.isKaren && (
           <>
             <Typography variant="h5" align="left">
               Chequing
@@ -272,18 +279,14 @@ export default class Home extends Component {
             {this.renderTable("chequing")}
           </>
         )}
-        {"bobby" in this.state.data && (
-          <>
-            <Typography variant="h5" align="left">
-              Bobby
-            </Typography>
-            {this.renderTable("bobby")}
-          </>
-        )}
+        <Typography variant="h5" align="left">
+          Bobby's Account
+        </Typography>
+        {this.renderTable("bobby")}
         <Typography variant="h5" align="left">
           Add Transaction
         </Typography>
-        {this.transactionForm("savings" in this.state.data)}
+        {this.transactionForm(this.state.isKaren)}
       </Layout>
     );
   }

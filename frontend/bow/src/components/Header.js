@@ -27,7 +27,7 @@ export default function Header() {
             <Title>Bank Of WEC</Title>
           </Link>
         </Grid>
-        <Grid style={{ float: "right" }}>
+        <Grid>
           <nav>
             <Link style={{ textDecoration: "none" }} to="/">
               <NavLink>Home</NavLink>
@@ -35,15 +35,6 @@ export default function Header() {
             <Link style={{ textDecoration: "none" }} to="login">
               <NavLink>Login</NavLink>
             </Link>
-            {/* <Link
-              onClick={() => {
-                localStorage.removeItem("guugle-login-token");
-              }}
-              style={{ textDecoration: "none" }}
-              to="login"
-            >
-              <NavLink>Logout</NavLink>
-            </Link> */}
           </nav>
         </Grid>
       </Toolbar>
