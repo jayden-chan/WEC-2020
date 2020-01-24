@@ -26,6 +26,7 @@
     "express": "^4.17.1",
     "express-fileupload": "^1.1.5",
     "jsonwebtoken": "^8.5.1",
+    "moment": "^2.24.0",
     "pg": "^7.11.0",
     "sqlstring": "^2.3.1"
   }

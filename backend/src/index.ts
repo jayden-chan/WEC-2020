@@ -1,6 +1,7 @@
 import * as express from "express";
 import { readdir, unlink, mkdirSync, stat } from "fs";
 import { resolve } from "path";
+import * as moment from "moment";
 
 import { verify_token, undef } from "./util";
 
@@ -201,6 +202,43 @@ app.post("/bobby", (req, res) => {
   }
 });
 
+app.post("/transfer", (req, res) => {
+  const { amount } = req.body;
+
+  karen_bal(false, bal => {
+    if (bal < amount) {
+      res.status(400).send("Too low balance");
+    } else {
+      const time = moment().format("YYYY-MM-DD");
+      const insert_query = sqlstring.format(
+        `INSERT INTO karen_check(date, type, amount, title) VALUES(?, ?, ?, ?)`,
+        [time, "Withdrawl", amount, "Automatic Transaction: Transfer to Bobby"]
+      );
+
+      const bobby_query = sqlstring.format(
+        `INSERT INTO bobby(date, type, amount, title) VALUES(?, ?, ?, ?)`,
+        [time, "Deposit", amount, "Automatic Transaction: Transfer from Karen"]
+      );
+
+      client.query(insert_query, (e1, r1) => {
+        if (e1) {
+          console.log(e1);
+          res.status(500).send("Error occurred with db insert");
+        } else {
+          client.query(bobby_query, (e2, r2) => {
+            if (e2) {
+              console.log(e2);
+              res.status(500).send("Error occurred with db insert");
+            } else {
+              res.status(201).send("Data added");
+            }
+          });
+        }
+      });
+    }
+  });
+});
+
 app.post("/login", (req, res) => {
   const query = sqlstring.format(
     "SELECT username FROM data WHERE username = ? AND password = crypt(?, password)",
@@ -327,6 +365,21 @@ function bobby_bal(cb: any) {
           cb(r1.rows[0].sum - r2.rows[0].sum);
         }
       });
+    }
+  });
+}
+
+function is_bobby_locked(cb: any) {
+  const d_query = sqlstring.format(`SELECT FROM lock WHERE timestamp = ?`, [
+    moment().format()
+  ]);
+
+  client.query(d_query, (e1, r1) => {
+    if (e1) {
+      console.log(e1);
+      return -1;
+    } else {
+      cb(r1.rows.some(row => row.is_locked === true));
     }
   });
 }
