@@ -18,7 +18,7 @@ export default function Header() {
 
   return (
     <AppBar
-      style={{ backgroundColor: "green", padding: "0 4em", width: "100%" }}
+      style={{ backgroundColor: "green", padding: "0 3.5em", width: "100%" }}
       position="fixed"
     >
       <Toolbar>
@@ -27,23 +27,17 @@ export default function Header() {
             <Title>Bank Of WEC</Title>
           </Link>
         </Grid>
-        <Grid style={{ float: "right" }}>
+        <Grid>
           <nav>
             <Link style={{ textDecoration: "none" }} to="/">
               <NavLink>Home</NavLink>
             </Link>
+            <Link style={{ textDecoration: "none" }} to="/investments">
+              <NavLink>Investments</NavLink>
+            </Link>
             <Link style={{ textDecoration: "none" }} to="login">
               <NavLink>Login</NavLink>
             </Link>
-            {/* <Link
-              onClick={() => {
-                localStorage.removeItem("guugle-login-token");
-              }}
-              style={{ textDecoration: "none" }}
-              to="login"
-            >
-              <NavLink>Logout</NavLink>
-            </Link> */}
           </nav>
         </Grid>
       </Toolbar>
