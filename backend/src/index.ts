@@ -10,6 +10,7 @@ import * as fileUpload from "express-fileupload";
 import * as bodyParser from "body-parser";
 import * as jwt from "jsonwebtoken";
 import * as sqlstring from "sqlstring";
+import * as parse from "csv-parse/lib/sync";
 
 const JWT_SECRET = process.env.JWT_SECRET || "Hello there testing";
 
@@ -22,12 +23,6 @@ const client = new Pool({
 const PORT = 3000;
 
 const app = express();
-app.use(
-  fileUpload({
-    useTempFiles: true,
-    tempFileDir: "/tmp/"
-  })
-);
 
 app.use(bodyParser.json());
 app.use(cors());
@@ -330,9 +325,40 @@ app.post("/signup", (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
-});
+if (process.argv[2] === "--import") {
+  const input = require("fs")
+    .readFileSync(process.argv[3])
+    .toString();
+
+  const records = parse(input, {
+    comment: "#"
+  });
+
+  let query = `INSERT INTO ${process.argv[4]}(date, type, amount, title) VALUES`;
+  records.slice(1).forEach(s => {
+    query += sqlstring.format("(?, ?, ?, ?),\n", [
+      moment(s[0]).format("YYYY-MM-DD"),
+      s[1] === "Withdrawl" ? "Withdrawal" : s[1],
+      s[2],
+      s[3]
+    ]);
+  });
+
+  query = query.slice(0, -2) + ";";
+
+  client.query(query, (err, res) => {
+    if (err) {
+      console.log(err);
+    } else {
+      console.log("inserted");
+      process.exit(0);
+    }
+  });
+} else {
+  app.listen(PORT, () => {
+    console.log(`Server listening on port ${PORT}`);
+  });
+}
 
 function karen_bal(is_sav: boolean, cb: any) {
   const acc_t = is_sav ? "karen_sav" : "karen_check";
