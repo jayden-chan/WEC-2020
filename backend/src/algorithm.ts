@@ -1,5 +1,3 @@
-import { brotliDecompress } from "zlib";
-
 type StockTransaction = {
   tesla: number;
   costco: number;
@@ -74,6 +72,7 @@ export function processStocks(
 ): StockTransaction {
   let shouldBuyStock: ShouldBuyStock;
   let finalPurchase: StockTransaction;
+  // Set which stocks to sell and buy
   Object.entries(companyStocks).forEach(([company, monthStocks]) => {
     const shouldSellStock = shouldSell(monthStocks);
     const shouldBuyStock = shouldBuy(monthStocks);
@@ -83,18 +82,20 @@ export function processStocks(
       shouldBuyStock[company] === false;
     }
   });
+  // Sell stocks and add sales to budget
   Object.entries(shouldBuyStock).forEach(([company, shouldBuy]) => {
     if (shouldBuy === false) {
       finalPurchase[company] = -ownedStocks[company];
       budget += ownedStocks[company] * companyStocks[company][29].open;
     }
   });
-
+  // Set the number of companies to buy stock from
   const numOfCompaniesToBuy: number = Object.values(shouldBuyStock).filter(
     (v: boolean) => v
   ).length;
 
   const perStockBudget = Math.floor(budget / numOfCompaniesToBuy);
+  // Record the amount of each stock to buy
   Object.entries(shouldBuyStock).forEach(([company, shouldBuy]) => {
     let moneySpent = 0;
     const costOfStockToday = companyStocks[company][29].open;
