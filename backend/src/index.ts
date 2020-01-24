@@ -42,7 +42,7 @@ app.get("/karen_c", (req, res) => {
     return;
   }
 
-  const query = sqlstring.format("SELECT * FROM karen_check");
+  const query = "SELECT * FROM karen_check";
 
   client.query(query, (err, response) => {
     if (err) {
@@ -61,7 +61,7 @@ app.get("/karen_s", (req, res) => {
     return;
   }
 
-  const query = sqlstring.format("SELECT * FROM karen_sav");
+  const query = "SELECT * FROM karen_sav";
 
   client.query(query, (err, response) => {
     if (err) {
@@ -80,7 +80,7 @@ app.get("/bobby", (req, res) => {
     return;
   }
 
-  const query = sqlstring.format("SELECT * FROM bobby");
+  const query = "SELECT * FROM bobby";
 
   client.query(query, (err, response) => {
     if (err) {
