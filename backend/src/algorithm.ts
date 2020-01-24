@@ -40,7 +40,7 @@ function shouldSell(lastMonth: MarketDay[]): boolean {
 }
 
 function fiveDayrule(days: MarketDay[]): boolean {
-  if ((days[2].open > days[0].open * 1, 2)) {
+  if (days[2].open > days[0].open * 1.2) {
     if (days[4].open < days[2].open * 1.05) {
       return true;
     }
@@ -58,11 +58,7 @@ function sevenDayRule(days: MarketDay[]): boolean {
 }
 
 function shouldBuy(lastMonth: MarketDay[]): boolean {
-  const average = lastMonth.reduce(
-    (acc: number, cur: MarketDay) => (acc += cur.close / lastMonth.length),
-    0
-  );
-  return average > lastMonth[0].open * 1.15;
+  return lastMonth[29].open > lastMonth[0].open * 1.15;
 }
 
 export function processStocks(
