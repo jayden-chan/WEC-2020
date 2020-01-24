@@ -118,7 +118,12 @@ export function renderTable(data, account) {
       );
     });
     const total = data[account].reduce(function(total, el) {
-      return total + el.amount;
+      if (el.type === "Deposit") {
+        return total + el.amount;
+      }
+      if (el.type === "Withdrawal") {
+        return total - el.amount;
+      }
     }, 0);
     return (
       <TableContainer>
@@ -208,7 +213,6 @@ export default class Home extends Component {
     });
 
     console.log(body);
-
     fetch(link, {
       method: "POST",
       headers: {
@@ -224,7 +228,7 @@ export default class Home extends Component {
       }
     });
 
-    this.setState({ transactionAmount: "" });
+    window.location.reload();
   }
 
   handleTransfer() {
@@ -249,7 +253,7 @@ export default class Home extends Component {
       }
     });
 
-    this.setState({ transactionAmount: "" });
+    window.location.reload();
   }
 
   transactionForm(isKaren) {
