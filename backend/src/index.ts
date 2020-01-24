@@ -111,8 +111,8 @@ app.post("/karen", (req, res) => {
   if (!acc_t) {
     res.status(400).send("Invalid account type");
   } else {
-    const { i_type, amount, title } = req.body;
-    if (undef(i_type) || undef(amount) || undef(title)) {
+    const { date, i_type, amount, title } = req.body;
+    if (undef(date) || undef(i_type) || undef(amount) || undef(title)) {
       res.status(400).send("Missing data");
     }
 
@@ -126,7 +126,7 @@ app.post("/karen", (req, res) => {
 
         const insert_query = sqlstring.format(
           `INSERT INTO ${acc_t}(date, type, amount, title, accepted) VALUES(?, ?, ?, ?, ?)`,
-          [moment().format(), i_type, amount, title, accepted]
+          [date, i_type, amount, title, accepted]
         );
 
         client.query(insert_query, (err, response) => {
@@ -145,7 +145,7 @@ app.post("/karen", (req, res) => {
     } else {
       const insert_query = sqlstring.format(
         `INSERT INTO ${acc_t}(date, type, amount, title, accepted) VALUES(?, ?, ?, ?, ?)`,
-        [moment().format(), i_type, amount, title, true]
+        [date, i_type, amount, title, true]
       );
 
       client.query(insert_query, (err, response) => {
@@ -167,8 +167,8 @@ app.post("/bobby", (req, res) => {
     return;
   }
 
-  const { i_type, amount, title } = req.body;
-  if (undef(i_type) || undef(amount) || undef(title)) {
+  const { date, i_type, amount, title } = req.body;
+  if (undef(date) || undef(i_type) || undef(amount) || undef(title)) {
     res.status(400).send("Missing data");
   }
 
@@ -180,7 +180,7 @@ app.post("/bobby", (req, res) => {
         res.status(400).send("Too low balance");
       }
 
-      bobby_today(moment().format("YYYY-MM-DD"), am => {
+      bobby_today(date, am => {
         if (accepted && am + amount > 100) {
           accepted = false;
           res.status(400).send("Your account is locked sorry");
@@ -188,7 +188,7 @@ app.post("/bobby", (req, res) => {
 
         const insert_query = sqlstring.format(
           `INSERT INTO bobby(date, type, amount, title, accepted) VALUES(?, ?, ?, ?, ?)`,
-          [moment().format(), i_type, amount, title, accepted]
+          [date, i_type, amount, title, accepted]
         );
 
         client.query(insert_query, (err, response) => {
@@ -208,7 +208,7 @@ app.post("/bobby", (req, res) => {
   } else {
     const insert_query = sqlstring.format(
       `INSERT INTO bobby(date, type, amount, title, accepted) VALUES(?, ?, ?, ?, ?)`,
-      [moment().format(), i_type, amount, title, true]
+      [date, i_type, amount, title, true]
     );
 
     client.query(insert_query, (err, response) => {
@@ -230,19 +230,24 @@ app.post("/transfer", (req, res) => {
   }
   const { amount } = req.body;
 
+  if (undef(amount) || amount === "") {
+    res.status(400).send("Missing amount");
+    return;
+  }
+
   karen_bal(false, bal => {
     if (bal < amount) {
       res.status(400).send("Too low balance");
     } else {
       const time = moment().format("YYYY-MM-DD");
       const insert_query = sqlstring.format(
-        `INSERT INTO karen_check(date, type, amount, title) VALUES(?, ?, ?, ?)`,
-        [time, "Withdrawal", amount, "Transfer to Bobby"]
+        `INSERT INTO karen_check(date, type, amount, title, accepted) VALUES(?, ?, ?, ?, ?)`,
+        [time, "Withdrawal", amount, "Transfer to Bobby", true]
       );
 
       const bobby_query = sqlstring.format(
-        `INSERT INTO bobby(date, type, amount, title) VALUES(?, ?, ?, ?)`,
-        [time, "Deposit", amount, "Transfer from Karen"]
+        `INSERT INTO bobby(date, type, amount, title, accepted) VALUES(?, ?, ?, ?, ?)`,
+        [time, "Deposit", amount, "Transfer from Karen", true]
       );
 
       client.query(insert_query, (e1, r1) => {
@@ -341,6 +346,7 @@ app.post("/update_stocks", (req, res) => {
 
   const { date } = req.body;
   if (!date) {
+    console.log(req.body);
     res.status(401).send("No date");
     return;
   }
@@ -474,7 +480,15 @@ app.post("/update_stocks", (req, res) => {
                                 if (!did_insert) {
                                   res.status(200).send(
                                     JSON.stringify({
-                                      stocks,
+                                      stocks: Object.entries(stocks).map(
+                                        ([k, v]) => {
+                                          return {
+                                            name: k,
+                                            count: v["count"],
+                                            price: v["price"]
+                                          };
+                                        }
+                                      ),
                                       investments: r7.rows
                                     })
                                   );
