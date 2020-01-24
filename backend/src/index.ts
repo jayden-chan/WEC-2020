@@ -43,7 +43,8 @@ app.get("/karen_c", (req, res) => {
     return;
   }
 
-  const query = "SELECT * FROM karen_check WHERE accepted = true";
+  const query =
+    "SELECT date, type, amount, title FROM karen_check WHERE accepted = true";
 
   client.query(query, (err, response) => {
     if (err) {
@@ -62,7 +63,8 @@ app.get("/karen_s", (req, res) => {
     return;
   }
 
-  const query = "SELECT * FROM karen_sav WHERE accepted = true";
+  const query =
+    "SELECT date, type, amount, title FROM karen_sav WHERE accepted = true";
 
   client.query(query, (err, response) => {
     if (err) {
@@ -81,7 +83,8 @@ app.get("/bobby", (req, res) => {
     return;
   }
 
-  const query = "SELECT * FROM bobby WHERE accepted = true";
+  const query =
+    "SELECT date, type, amount, title FROM bobby WHERE accepted = true";
 
   client.query(query, (err, response) => {
     if (err) {
@@ -221,12 +224,12 @@ app.post("/transfer", (req, res) => {
       const time = moment().format("YYYY-MM-DD");
       const insert_query = sqlstring.format(
         `INSERT INTO karen_check(date, type, amount, title) VALUES(?, ?, ?, ?)`,
-        [time, "Withdrawl", amount, "Automatic Transaction: Transfer to Bobby"]
+        [time, "Withdrawl", amount, "Transfer to Bobby"]
       );
 
       const bobby_query = sqlstring.format(
         `INSERT INTO bobby(date, type, amount, title) VALUES(?, ?, ?, ?)`,
-        [time, "Deposit", amount, "Automatic Transaction: Transfer from Karen"]
+        [time, "Deposit", amount, "Transfer from Karen"]
       );
 
       client.query(insert_query, (e1, r1) => {
