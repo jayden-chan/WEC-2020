@@ -1,42 +1,26 @@
-I'm assuming that stocks is an array of type stock that stores a particular 
-stock's information for a specific day. Type stock has at least one variable called 
-val which stores the value for that day.This is done 
-
-rule 1
-if (halfway != null && current == recoverDeadline) {
-    if (stocks[current].val < halfway){
-        sell();
-    }
-}
-
-if (halfway == null && stocks[current].val <= stocks[current-1].val * 0.85 ){
-    halfway = stocks[current-1].val * 0.92.5;
-    recoverDeadline= current + 7;
-}
-
-Rule 2
-if (risingSell != null && current == sellDeadline) {
-    if (stocks[current].val > risingSell){
-        sell();
-    }
-}
-
-if (risinSell == null && stocks[current].val > stocks[current-2].val * 1.2) {
-    risingSell = stocks[current].val * 1.05;
-    sellDeadline == current + 2;
+////////////////////////////// Rule 1  //////////////////////////////
+if (stocks[24] < 0.85 * stocks[23] && stocks[9] <= stocks[23] * 925)
+    sell();
 }
 
 
-Rule 3
-if (average(stocks, current) > 1.15) {
+////////////////////////////// Rule 2  //////////////////////////////
+
+
+if (stocks[27] >= stocks[25] * 1.2 && stocks[25] > stocks[27] * 1.05)
+    sell();
+}
+
+
+////////////////////////////// Rule 3  //////////////////////////////
+
+double runningTally = 0;
+
+for (int i = 0; 0 < 29; i++){
+    runningTally += stocks[i];
+}
+if (runningTally/30 > stocks[0] * 1.15 ){
     buy();
 }
+    
 
-double average(stocks company, int endDay) {
-    int day = endDay - 30;
-    double runningTally = 0;
-    while(day < endDay){
-        runninTally += company[day].val;
-    }
-   return runningTally/30;
-}
