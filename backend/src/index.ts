@@ -43,7 +43,7 @@ app.get("/karen_c", (req, res) => {
     return;
   }
 
-  const query = "SELECT * FROM karen_check";
+  const query = "SELECT * FROM karen_check WHERE accepted = true";
 
   client.query(query, (err, response) => {
     if (err) {
@@ -62,7 +62,7 @@ app.get("/karen_s", (req, res) => {
     return;
   }
 
-  const query = "SELECT * FROM karen_sav";
+  const query = "SELECT * FROM karen_sav WHERE accepted = true";
 
   client.query(query, (err, response) => {
     if (err) {
@@ -81,7 +81,7 @@ app.get("/bobby", (req, res) => {
     return;
   }
 
-  const query = "SELECT * FROM bobby";
+  const query = "SELECT * FROM bobby WHERE accepted = true";
 
   client.query(query, (err, response) => {
     if (err) {
@@ -117,28 +117,29 @@ app.post("/karen", (req, res) => {
 
     if (req.body.i_type === "Withdrawl") {
       karen_bal(acc_t === "karen_sav", bal => {
+        let accepted = true;
         if (bal < amount) {
+          accepted = false;
           res.status(400).send("Too low balance");
-        } else {
-          const insert_query = sqlstring.format(
-            `INSERT INTO ${acc_t}(date, type, amount, title) VALUES(?, ?, ?, ?)`,
-            [date, i_type, amount, title]
-          );
-
-          client.query(insert_query, (err, response) => {
-            if (err) {
-              console.log(err);
-              res.status(500).send("Error occurred with db insert");
-            } else {
-              res.status(201).send("Data added");
-            }
-          });
         }
+        const insert_query = sqlstring.format(
+          `INSERT INTO ${acc_t}(date, type, amount, title, accepted) VALUES(?, ?, ?, ?, ?)`,
+          [date, i_type, amount, title, accepted]
+        );
+
+        client.query(insert_query, (err, response) => {
+          if (err) {
+            console.log(err);
+            res.status(500).send("Error occurred with db insert");
+          } else {
+            res.status(201).send("Data added");
+          }
+        });
       });
     } else {
       const insert_query = sqlstring.format(
-        `INSERT INTO ${acc_t}(date, type, amount, title) VALUES(?, ?, ?, ?)`,
-        [date, i_type, amount, title]
+        `INSERT INTO ${acc_t}(date, type, amount, title, accepted) VALUES(?, ?, ?, ?, ?)`,
+        [date, i_type, amount, title, true]
       );
 
       client.query(insert_query, (err, response) => {
@@ -167,29 +168,31 @@ app.post("/bobby", (req, res) => {
 
   if (req.body.i_type === "Withdrawl") {
     bobby_bal(bal => {
+      let accepted = true;
       if (bal < amount) {
+        accepted = false;
         res.status(400).send("Too low balance");
-      } else {
-        bobby_today(am => {
-          if (am >= 100) {
-            res.status(400).send("Your account is locked sorry");
-          } else {
-            const insert_query = sqlstring.format(
-              `INSERT INTO bobby(date, type, amount, title) VALUES(?, ?, ?, ?)`,
-              [date, i_type, amount, title]
-            );
-
-            client.query(insert_query, (err, response) => {
-              if (err) {
-                console.log(err);
-                res.status(500).send("Error occurred with db insert");
-              } else {
-                res.status(201).send("Data added");
-              }
-            });
-          }
-        });
       }
+      bobby_today(am => {
+        if (am + amount > 100) {
+          accepted = false;
+          res.status(400).send("Your account is locked sorry");
+        } else {
+          const insert_query = sqlstring.format(
+            `INSERT INTO bobby(date, type, amount, title, accepted) VALUES(?, ?, ?, ?, ?)`,
+            [date, i_type, amount, title, accepted]
+          );
+
+          client.query(insert_query, (err, response) => {
+            if (err) {
+              console.log(err);
+              res.status(500).send("Error occurred with db insert");
+            } else {
+              res.status(201).send("Data added");
+            }
+          });
+        }
+      });
     });
   } else {
     const insert_query = sqlstring.format(
