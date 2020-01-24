@@ -14,6 +14,7 @@ import FormControl from "@material-ui/core/FormControl";
 import Button from "@material-ui/core/Button";
 import { withStyles } from "@material-ui/core/styles";
 import Typography from "@material-ui/core/Typography";
+import CircularProgress from "@material-ui/core/CircularProgress";
 
 const savingsData = [
   {
@@ -72,6 +73,7 @@ const chequingData = [
 const data = {
   chequing: chequingData,
   savings: savingsData,
+  investments: [],
   bobby: [
     {
       date: "2020-01-04T06:00:00.000Z",
@@ -105,9 +107,10 @@ export default class Home extends Component {
       transactionAmount: null,
       transactionAccount: "",
       transactionTitle: "",
-      isKaren: false
+      transferAmount: null
     };
-    this.handleSubmit = this.handleSubmit.bind(this);
+    this.handleTransaction = this.handleTransaction.bind(this);
+    this.handleTransfer = this.handleTransfer.bind(this);
   }
 
   componentDidMount = async () => {
@@ -129,9 +132,13 @@ export default class Home extends Component {
         res.text().then(text => alert(text));
       }
     });
+
+    this.setState({
+      data: data
+    });
   };
 
-  handleSubmit() {
+  handleTransaction() {
     const body = JSON.stringify({
       i_type: this.state.transactionType,
       acc: this.state.transactionAccount,
@@ -162,11 +169,36 @@ export default class Home extends Component {
     });
   }
 
+  handleTransfer() {
+    const body = JSON.stringify({
+      amount: this.state.transferAmount
+    });
+
+    let link = "http://localhost:3000/transfer";
+
+    fetch(link, {
+      method: "POST",
+      headers: {
+        Authorization: localStorage.getItem("bow-login-token")
+      },
+      body
+    }).then(res => {
+      if (res.status === 200) {
+        res.json().then(json => this.setState({ data: json }));
+      } else {
+        res.text().then(text => alert(text));
+      }
+    });
+  }
+
   renderTable(account) {
-    console.log("state", this.state.data);
-    if (!this.state.data || Object.entries(this.state.data).length === 0) {
-      console.log("data is null");
-      return;
+    if (
+      !this.state.data ||
+      !this.state.data[account] ||
+      Object.entries(this.state.data).length === 0
+    ) {
+      console.log("data is loading");
+      return <CircularProgress color="green" />;
     }
     if (this.state.data[account].length === 0) {
       return <div>You have no transactions</div>;
@@ -259,7 +291,36 @@ export default class Home extends Component {
         />
         <br></br>
         <Button
-          onClick={this.handleSubmit}
+          onClick={this.handleTransaction}
+          variant="contained"
+          style={{
+            backgroundColor: "green",
+            color: "white",
+            marginTop: "1em"
+          }}
+        >
+          Submit
+        </Button>
+      </form>
+    );
+  }
+
+  transferForm() {
+    return (
+      <form noValidate autoComplete="off" style={{ textAlign: "left" }}>
+        <TextField
+          id="transaction-title"
+          label="Amount"
+          type="number"
+          value={this.state.transferAmount}
+          inputProps={{ min: "0" }}
+          onChange={e => {
+            this.setState({ transferAmount: e.target.value });
+          }}
+        />
+        <br></br>
+        <Button
+          onClick={this.handleTransfer}
           variant="contained"
           style={{
             backgroundColor: "green",
@@ -274,13 +335,14 @@ export default class Home extends Component {
   }
 
   render() {
+    const isKaren = "savings" in this.state.data;
     console.log("data", this.state.data);
     return (
       <Layout>
         <Typography variant="h4" align="left">
           Transactions
         </Typography>
-        {this.state.isKaren && (
+        {isKaren && (
           <>
             <Typography variant="h5" align="left">
               Savings
@@ -288,12 +350,20 @@ export default class Home extends Component {
             {this.renderTable("savings")}
           </>
         )}
-        {this.state.isKaren && (
+        {isKaren && (
           <>
             <Typography variant="h5" align="left">
               Chequing
             </Typography>
             {this.renderTable("chequing")}
+          </>
+        )}
+        {isKaren && (
+          <>
+            <Typography variant="h5" align="left">
+              Investments
+            </Typography>
+            {this.renderTable("investments")}
           </>
         )}
         <Typography variant="h5" align="left">
@@ -303,7 +373,15 @@ export default class Home extends Component {
         <Typography variant="h5" align="left">
           Add Transaction
         </Typography>
-        {this.transactionForm(this.state.isKaren)}
+        {this.transactionForm()}
+        {isKaren && (
+          <>
+            <Typography variant="h5" align="left">
+              Transfer to Bobby
+            </Typography>
+            {this.transferForm()}
+          </>
+        )}
       </Layout>
     );
   }
