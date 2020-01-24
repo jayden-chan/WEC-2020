@@ -72,11 +72,12 @@ export default class Investments extends Component {
     fetch(link, {
       method: "POST",
       headers: {
+        "Content-Type": "application/json",
         Authorization: localStorage.getItem("bow-login-token")
       },
-      body: {
+      body: JSON.stringify({
         date: this.state.date.format("YYYY-MM-DD")
-      }
+      })
     }).then(res => {
       if (res.status === 200) {
         res.json().then(json => this.setState({ data: json }));
@@ -91,38 +92,17 @@ export default class Investments extends Component {
     this.setState(state => ({
       date: state.date.add(1, "days")
     }));
-    const link = "http://localhost:3000/date";
+    const link = "http://localhost:3000/update_stocks";
 
     fetch(link, {
       method: "POST",
       headers: {
+        "Content-Type": "application/json",
         Authorization: localStorage.getItem("bow-login-token")
       },
-      body: {
+      body: JSON.stringify({
         date: this.state.date.format("YYYY-MM-DD")
-      }
-    }).then(res => {
-      if (res.status === 200) {
-        res.json().then(json => this.setState({ data: json }));
-      } else {
-        res.text().then(text => alert(text));
-      }
-    });
-  }
-  daySubtract() {
-    this.setState(state => ({
-      date: state.date.subtract(1, "days")
-    }));
-    const link = "http://localhost:3000/date";
-
-    fetch(link, {
-      method: "POST",
-      headers: {
-        Authorization: localStorage.getItem("bow-login-token")
-      },
-      body: {
-        date: this.state.date.format("YYYY-MM-DD")
-      }
+      })
     }).then(res => {
       if (res.status === 200) {
         res.json().then(json => this.setState({ data: json }));

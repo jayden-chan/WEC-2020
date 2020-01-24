@@ -203,7 +203,8 @@ export default class Home extends Component {
       i_type: this.state.transactionType,
       acc: this.state.transactionAccount,
       amount: this.state.transactionAmount,
-      title: this.state.transactionTitle
+      title: this.state.transactionTitle,
+      date: this.state.date.format("YYYY-MM-DD")
     });
 
     console.log(body);
@@ -236,6 +237,7 @@ export default class Home extends Component {
     fetch(link, {
       method: "POST",
       headers: {
+        "Content-Type": "application/json",
         Authorization: localStorage.getItem("bow-login-token")
       },
       body
