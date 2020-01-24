@@ -131,13 +131,6 @@ export default class Home extends Component {
   };
 
   handleSubmit() {
-    const body = JSON.stringify({
-      i_type: this.state.transactionType,
-      acc: this.state.transactionAccount,
-      amount: this.state.transactionAmount,
-      title: this.state.transactionTitle
-    });
-
     const acc = this.state.transactionAccount;
     let link = "http://localhost:3000/";
     if (acc === "c" || acc === "s") {
@@ -146,12 +139,22 @@ export default class Home extends Component {
       link += "bobby";
     }
 
+    const body = JSON.stringify({
+      i_type: this.state.transactionType,
+      acc: this.state.transactionAccount,
+      amount: this.state.transactionAmount,
+      title: this.state.transactionTitle
+    });
+
+    console.log(body);
+
     fetch(link, {
       method: "POST",
       headers: {
+        "Content-Type": "application/json",
         Authorization: localStorage.getItem("bow-login-token")
       },
-      body
+      body: body
     }).then(res => {
       if (res.status === 200) {
         res.json().then(json => this.setState({ data: json }));
