@@ -334,13 +334,14 @@ if (process.argv[2] === "--import") {
     comment: "#"
   });
 
-  let query = `INSERT INTO ${process.argv[4]}(date, type, amount, title) VALUES`;
+  let query = `INSERT INTO ${process.argv[4]}(date, type, amount, title, accepted) VALUES`;
   records.slice(1).forEach(s => {
     query += sqlstring.format("(?, ?, ?, ?),\n", [
       moment(s[0]).format("YYYY-MM-DD"),
       s[1] === "Withdrawl" ? "Withdrawal" : s[1],
       s[2],
-      s[3]
+      s[3],
+      true
     ]);
   });
 
