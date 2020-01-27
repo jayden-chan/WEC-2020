@@ -1,5 +1,5 @@
 # WEC-2020
-First place submission from the WEC 2020 Programming Competition.
+Winning submission from the WEC 2020 Programming Competition.
 
 ## Authors
 * Kahvi Patel
