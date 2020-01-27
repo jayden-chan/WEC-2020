@@ -15,10 +15,12 @@ import * as parse from "csv-parse/lib/sync";
 import { processStocks } from "./algorithm";
 
 const JWT_SECRET = process.env.JWT_SECRET || "Hello there testing";
+const DATABASE_URL =
+  process.env.DATABASE_URL || "postgres://jayden@localhost/wec-2020";
 
 const { Pool } = require("pg");
 const client = new Pool({
-  connectionString: "postgres://jayden@localhost/wec-2020",
+  connectionString: DATABASE_URL,
   ssl: false
 });
 
@@ -392,10 +394,10 @@ app.post("/update_stocks", (req, res) => {
                     } else {
                       karen_inv_bal(bal => {
                         const data = {
-                          tesla: r1.rows,
-                          loblaws: r2.rows,
-                          macys: r3.rows,
-                          costco: r4.rows
+                          tesla: r1.rows.reverse(),
+                          loblaws: r2.rows.reverse(),
+                          macys: r3.rows.reverse(),
+                          costco: r4.rows.reverse()
                         };
 
                         const updates = processStocks(data, r5.rows[0], bal);
