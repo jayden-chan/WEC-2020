@@ -1,5 +1,5 @@
 # WEC-2020
-Winning submission from the WEC 2020 Programming Competition.
+Winning submission from the WEC 2020 Programming Competition (UVic Broadway Bridge).
 
 ## Authors
 * Kahvi Patel
